@@ -11,7 +11,12 @@ export interface PlayersInfos {
 
 export function usePlayersInfos(initialCount = 4): PlayersInfos {
   const [players, setPlayers] = useState<PlayerEntry[]>(
-    Array.from({ length: initialCount }, () => ({ name: "", deck: "" })),
+    [
+      { name: "Mario Rossi", deck: "Snake-Eye" },
+      { name: "Luca Bianchi", deck: "Yubel" },
+      { name: "Giulia Verdi", deck: "Branded" },
+      { name: "Marco Neri", deck: "Tenpai Dragon" },
+    ].slice(0, initialCount),
   );
 
   const onChange = (index: number, field: keyof PlayerEntry, value: string) =>

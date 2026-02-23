@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
+import { toPng } from "html-to-image";
 import { PlayerChart } from "./PlayerChart";
 import { PlayersTop } from "./PlayersTop";
 import { DecksChart } from "./DecksChart";
@@ -16,10 +17,11 @@ export function HomeClient() {
   const playersInfos = usePlayersInfos(4);
 
   const [decks, setDecks] = useState<DeckEntry[]>([
-    { name: "", qty: 1 },
-    { name: "", qty: 1 },
-    { name: "", qty: 1 },
-    { name: "OTHER", qty: 1 },
+    { name: "Snake-Eye", qty: 28 },
+    { name: "Yubel", qty: 22 },
+    { name: "Branded", qty: 18 },
+    { name: "Tenpai Dragon", qty: 15 },
+    { name: "OTHER", qty: 45 },
   ]);
 
   const handleDeckChange = (
@@ -58,6 +60,17 @@ export function HomeClient() {
     setBgOpacity(opacity);
   };
 
+  const exportRef = useRef<HTMLDivElement>(null);
+
+  const exportPng = async () => {
+    if (!exportRef.current) return;
+    const dataUrl = await toPng(exportRef.current, { pixelRatio: 2 });
+    const link = document.createElement("a");
+    link.download = `${tournamentData.name || "torneo"}.png`;
+    link.href = dataUrl;
+    link.click();
+  };
+
   // Build imageSearch overrides map: label → imageSearch term
   const imageSearchOverrides = Object.fromEntries(
     decks
@@ -88,7 +101,16 @@ export function HomeClient() {
       <div className="flex-1 min-w-0 flex flex-col gap-8">
         <BackgroundImage onImageChange={handleBgChange} />
 
-        <div className="relative rounded-xl overflow-hidden">
+        <div className="flex justify-end">
+          <button
+            onClick={exportPng}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded border border-gray-300 bg-gray-100 hover:bg-gray-200"
+          >
+            ⬇ Esporta PNG
+          </button>
+        </div>
+
+        <div ref={exportRef} className="relative rounded-xl overflow-hidden">
           {/* faded background */}
           {bgUrl && (
             <img
