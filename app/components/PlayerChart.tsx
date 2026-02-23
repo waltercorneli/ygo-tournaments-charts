@@ -1,44 +1,25 @@
 "use client";
 
-import { useState } from "react";
-
-interface PlayerEntry {
+export interface PlayerEntry {
   name: string;
   deck: string;
 }
 
-export function PlayerChart() {
-  const [players, setPlayers] = useState<PlayerEntry[]>([
-    { name: "", deck: "" },
-    { name: "", deck: "" },
-    { name: "", deck: "" },
-    { name: "", deck: "" },
-  ]);
+interface PlayerChartProps {
+  players: PlayerEntry[];
+  onChange: (index: number, field: keyof PlayerEntry, value: string) => void;
+  onAdd: () => void;
+  onRemove: (index: number) => void;
+  onClear: () => void;
+}
 
-  const handleChange = (
-    index: number,
-    field: keyof PlayerEntry,
-    value: string,
-  ) => {
-    setPlayers((prev) => {
-      const updated = [...prev];
-      updated[index] = { ...updated[index], [field]: value };
-      return updated;
-    });
-  };
-
-  const addPlayer = () => {
-    setPlayers((prev) => [...prev, { name: "", deck: "" }]);
-  };
-
-  const removePlayer = (index: number) => {
-    setPlayers((prev) => prev.filter((_, i) => i !== index));
-  };
-
-  const clearPlayers = () => {
-    setPlayers((prev) => prev.map(() => ({ name: "", deck: "" })));
-  };
-
+export function PlayerChart({
+  players,
+  onChange,
+  onAdd,
+  onRemove,
+  onClear,
+}: PlayerChartProps) {
   return (
     <div className="max-w-xl">
       <h1 className="text-2xl font-bold mb-4">Player Chart</h1>
@@ -49,19 +30,19 @@ export function PlayerChart() {
             <input
               type="text"
               value={player.name}
-              onChange={(e) => handleChange(index, "name", e.target.value)}
+              onChange={(e) => onChange(index, "name", e.target.value)}
               placeholder={`Player ${index + 1}`}
               className="flex-1 px-3 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
             />
             <input
               type="text"
               value={player.deck}
-              onChange={(e) => handleChange(index, "deck", e.target.value)}
+              onChange={(e) => onChange(index, "deck", e.target.value)}
               placeholder="Deck"
               className="flex-1 px-3 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-purple-300"
             />
             <button
-              onClick={() => removePlayer(index)}
+              onClick={() => onRemove(index)}
               title="Rimuovi player"
               className="px-3 py-1 rounded border border-red-300 bg-red-50 text-red-700 font-bold cursor-pointer hover:bg-red-100"
             >
@@ -71,14 +52,14 @@ export function PlayerChart() {
         ))}
         <div className="flex gap-2 mt-1">
           <button
-            onClick={addPlayer}
+            onClick={onAdd}
             title="Aggiungi player"
             className="px-4 py-1.5 text-lg rounded border border-gray-300 bg-gray-100 cursor-pointer hover:bg-gray-200"
           >
             +
           </button>
           <button
-            onClick={clearPlayers}
+            onClick={onClear}
             title="Svuota tutti i campi"
             className="px-4 py-1.5 rounded border border-gray-300 bg-yellow-50 cursor-pointer hover:bg-yellow-100"
           >
