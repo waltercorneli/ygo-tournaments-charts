@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Chart, ArcElement, Tooltip, Legend, PieController } from "chart.js";
 import type { Plugin } from "chart.js";
 import { DecksChartData } from "../hooks/useDecksInfos";
@@ -10,6 +10,8 @@ Chart.register(ArcElement, Tooltip, Legend, PieController);
 
 type PickerState = { label: string; x: number; y: number };
 type ImageEntry = { img: HTMLImageElement; url: string };
+type ImageSettings = { scale: number; offsetX: number; offsetY: number };
+const DEFAULT_SETTINGS: ImageSettings = { scale: 1, offsetX: 0, offsetY: 0 };
 
 export function PieChart({ labels, data, colors }: DecksChartData) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -28,9 +30,25 @@ export function PieChart({ labels, data, colors }: DecksChartData) {
   );
   const [picker, setPicker] = useState<PickerState | null>(null);
 
-  // Ref so the stable onHover callback can read the current picker without stale closure
   const pickerRef = useRef<PickerState | null>(null);
   pickerRef.current = picker;
+
+  const [imageSettings, setImageSettings] = useState<
+    Record<string, ImageSettings>
+  >({});
+  const settingsRef = useRef<Record<string, ImageSettings>>({});
+  settingsRef.current = imageSettings;
+
+  const updateSettings = (label: string, patch: Partial<ImageSettings>) =>
+    setImageSettings((prev) => ({
+      ...prev,
+      [label]: { ...(prev[label] ?? DEFAULT_SETTINGS), ...patch },
+    }));
+
+  // Redraw chart whenever settings change
+  useEffect(() => {
+    chartRef.current?.update();
+  }, [imageSettings]);
 
   // Auto-select first image when options load
   useEffect(() => {
@@ -85,14 +103,26 @@ export function PieChart({ labels, data, colors }: DecksChartData) {
           ctx.arc(el.x, el.y, el.outerRadius, el.startAngle, el.endAngle);
           ctx.closePath();
           ctx.clip();
+          const {
+            scale: scaleMultiplier = 1,
+            offsetX = 0,
+            offsetY = 0,
+          } = settingsRef.current[label] ?? DEFAULT_SETTINGS;
           const size = el.outerRadius * 2;
-          const scale = Math.max(
+          const baseScale = Math.max(
             size / img.naturalWidth,
             size / img.naturalHeight,
           );
-          const sw = img.naturalWidth * scale;
-          const sh = img.naturalHeight * scale;
-          ctx.drawImage(img, el.x - sw / 2, el.y - sh / 2, sw, sh);
+          const finalScale = baseScale * scaleMultiplier;
+          const sw = img.naturalWidth * finalScale;
+          const sh = img.naturalHeight * finalScale;
+          ctx.drawImage(
+            img,
+            el.x - sw / 2 + offsetX,
+            el.y - sh / 2 + offsetY,
+            sw,
+            sh,
+          );
           ctx.restore();
         });
       },
@@ -213,8 +243,107 @@ export function PieChart({ labels, data, colors }: DecksChartData) {
               </button>
             ))}
           </div>
+
+          {/* Scale */}
+          <div className="flex items-center gap-2 border-t border-gray-100 px-3 py-2">
+            <span title="Scala" className="select-none text-base">
+              🔍
+            </span>
+            <input
+              type="range"
+              min={0.3}
+              max={4}
+              step={0.05}
+              value={imageSettings[picker.label]?.scale ?? 1}
+              onChange={(e) =>
+                updateSettings(picker.label, {
+                  scale: parseFloat(e.target.value),
+                })
+              }
+              className="flex-1 accent-blue-500"
+            />
+            <span className="w-8 text-right text-xs text-gray-500">
+              {Math.round((imageSettings[picker.label]?.scale ?? 1) * 100)}%
+            </span>
+          </div>
+
+          {/* Position pad */}
+          <div className="flex items-center gap-3 border-t border-gray-100 px-3 py-2">
+            <span title="Posizione" className="select-none text-base">
+              ✥
+            </span>
+            <DragPad
+              offsetX={imageSettings[picker.label]?.offsetX ?? 0}
+              offsetY={imageSettings[picker.label]?.offsetY ?? 0}
+              onChange={(x, y) =>
+                updateSettings(picker.label, { offsetX: x, offsetY: y })
+              }
+            />
+            <button
+              onClick={() =>
+                updateSettings(picker.label, { offsetX: 0, offsetY: 0 })
+              }
+              className="text-sm text-gray-400 hover:text-gray-700"
+              title="Reset posizione"
+            >
+              ↺
+            </button>
+          </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// ── 2D drag pad for image offset ────────────────────────────────────────
+const PAD_SIZE = 80;
+const PAD_MAX_OFFSET = 150;
+
+function DragPad({
+  offsetX,
+  offsetY,
+  onChange,
+}: {
+  offsetX: number;
+  offsetY: number;
+  onChange: (x: number, y: number) => void;
+}) {
+  const half = PAD_SIZE / 2;
+
+  // Map offset [-MAX, MAX] → px position [0, PAD_SIZE]
+  const dotX = (offsetX / PAD_MAX_OFFSET) * half + half;
+  const dotY = (offsetY / PAD_MAX_OFFSET) * half + half;
+
+  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!e.currentTarget.hasPointerCapture(e.pointerId)) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = Math.max(0, Math.min(PAD_SIZE, e.clientX - rect.left));
+    const y = Math.max(0, Math.min(PAD_SIZE, e.clientY - rect.top));
+    onChange(
+      Math.round(((x - half) / half) * PAD_MAX_OFFSET),
+      Math.round(((y - half) / half) * PAD_MAX_OFFSET),
+    );
+  };
+
+  return (
+    <div
+      className="relative cursor-crosshair select-none overflow-hidden rounded-lg border border-gray-200 bg-gray-100"
+      style={{ width: PAD_SIZE, height: PAD_SIZE }}
+      onPointerDown={(e) => e.currentTarget.setPointerCapture(e.pointerId)}
+      onPointerMove={handlePointerMove}
+    >
+      {/* crosshair */}
+      <div className="pointer-events-none absolute inset-0 flex items-center">
+        <div className="h-px w-full bg-gray-300" />
+      </div>
+      <div className="pointer-events-none absolute inset-0 flex justify-center">
+        <div className="h-full w-px bg-gray-300" />
+      </div>
+      {/* draggable dot */}
+      <div
+        className="pointer-events-none absolute h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-blue-500 shadow"
+        style={{ left: dotX, top: dotY }}
+      />
     </div>
   );
 }
