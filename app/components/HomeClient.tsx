@@ -58,6 +58,7 @@ export function HomeClient() {
 
   const [bgUrl, setBgUrl] = useState<string | null>(null);
   const [bgOpacity, setBgOpacity] = useState(15);
+  const [isDark, setIsDark] = useState(true);
 
   const handleBgChange = (url: string | null, opacity: number) => {
     setBgUrl(url);
@@ -109,7 +110,13 @@ export function HomeClient() {
       <div className="flex-1 min-w-0 flex flex-col gap-8">
         <BackgroundImage onImageChange={handleBgChange} />
 
-        <div className="flex justify-end">
+        <div className="flex items-center justify-end gap-3">
+          <button
+            onClick={() => setIsDark((p) => !p)}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded border border-gray-300 bg-gray-100 hover:bg-gray-200"
+          >
+            {isDark ? "☀️ Modalità chiara" : "🌙 Modalità notte"}
+          </button>
           <button
             onClick={exportPng}
             className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded border border-gray-300 bg-gray-100 hover:bg-gray-200"
@@ -121,7 +128,7 @@ export function HomeClient() {
         {/* Measured outer container */}
         <div
           ref={exportRef}
-          className="relative w-full aspect-square rounded-xl overflow-hidden bg-white"
+          className={`relative w-full aspect-square rounded-xl overflow-hidden ${isDark ? "bg-gray-900" : "bg-white"}`}
         >
           {/* faded background */}
           {bgUrl && (
@@ -136,19 +143,20 @@ export function HomeClient() {
 
           {/* foreground content */}
           <div className="relative h-full flex flex-col gap-6 p-8">
-            <TournamentInfo data={tournamentData} />
+            <TournamentInfo data={tournamentData} isDark={isDark} />
             <div className="flex-1 min-h-0">
               <PieChart
                 {...chartData}
                 imageSearchOverrides={imageSearchOverrides}
+                isDark={isDark}
               />
             </div>
             <div className="flex gap-4 items-stretch">
               <div className="flex-[3] min-w-0">
-                <PlayersTop players={playersInfos.players} />
+                <PlayersTop players={playersInfos.players} isDark={isDark} />
               </div>
               <div className="flex-[1] min-w-0">
-                <TeamInfo />
+                <TeamInfo isDark={isDark} />
               </div>
             </div>
           </div>

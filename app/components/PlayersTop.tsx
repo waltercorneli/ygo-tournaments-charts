@@ -11,17 +11,24 @@ const TROPHY_COLORS = [
 
 interface PlayersTopProps {
   players: PlayerEntry[];
+  isDark?: boolean;
 }
 
-export function PlayersTop({ players }: PlayersTopProps) {
+export function PlayersTop({ players, isDark = false }: PlayersTopProps) {
   const filled = players.filter((p) => p.name.trim() !== "");
 
   if (filled.length === 0) return null;
 
   return (
     <div className="flex flex-col gap-2 h-full">
-      <h2 className="text-2xl font-bold text-gray-900">CLASSIFICA</h2>
-      <div className="w-full flex-1 border border-gray-200/70 bg-gray-50/60 px-5 py-4">
+      <h2
+        className={`text-2xl font-bold ${isDark ? "text-white" : "text-gray-900"}`}
+      >
+        CLASSIFICA
+      </h2>
+      <div
+        className={`w-full flex-1 border px-5 py-4 ${isDark ? "border-gray-600/70 bg-gray-800/60" : "border-gray-200/70 bg-gray-50/60"}`}
+      >
         <div className="grid grid-cols-2 gap-3">
           {players.map((player, index) => (
             <div key={index} className="flex items-center gap-3 py-2">
@@ -31,10 +38,14 @@ export function PlayersTop({ players }: PlayersTopProps) {
                 {POSITIONS[index] ?? `${index + 1}°`}
               </span>
               <div className="flex flex-col min-w-0">
-                <span className="font-bold text-3xl text-gray-900 truncate">
+                <span
+                  className={`font-bold text-3xl truncate ${isDark ? "text-white" : "text-gray-900"}`}
+                >
                   {player.name.trim() || "—"}
                 </span>
-                <span className="text-xl text-gray-500 truncate">
+                <span
+                  className={`text-xl truncate ${isDark ? "text-gray-400" : "text-gray-500"}`}
+                >
                   {player.deck.trim() || "—"}
                 </span>
               </div>

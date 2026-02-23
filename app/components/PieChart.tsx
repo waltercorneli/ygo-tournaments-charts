@@ -18,10 +18,17 @@ export function PieChart({
   data,
   colors,
   imageSearchOverrides = {},
-}: DecksChartData & { imageSearchOverrides?: Record<string, string> }) {
+  isDark = false,
+}: DecksChartData & {
+  imageSearchOverrides?: Record<string, string>;
+  isDark?: boolean;
+}) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const chartRef = useRef<Chart | null>(null);
   const imagesRef = useRef<Record<string, ImageEntry>>({});
+
+  const isDarkRef = useRef(isDark);
+  isDarkRef.current = isDark;
 
   const imageOptionsRef = useRef<Record<string, string[]>>({});
   const labelsRef = useRef<string[]>(labels);
@@ -152,6 +159,14 @@ export function PieChart({
     chartRef.current?.update();
   }, [imageSettings]);
 
+  // Redraw chart when dark mode changes
+  useEffect(() => {
+    if (!chartRef.current) return;
+    const ds = chartRef.current.data.datasets[0] as { borderColor?: string };
+    ds.borderColor = isDark ? "#1f2937" : "#ffffff";
+    chartRef.current.update();
+  }, [isDark]);
+
   // Auto-select first image when options load
   useEffect(() => {
     setSelectedImages(() => {
@@ -239,7 +254,7 @@ export function PieChart({
             outerRadius: number;
           };
           ctx.save();
-          ctx.strokeStyle = "#ffffff";
+          ctx.strokeStyle = isDarkRef.current ? "#1f2937" : "#ffffff";
           ctx.lineWidth = 4;
           ctx.lineJoin = "round";
           ctx.beginPath();
@@ -313,7 +328,7 @@ export function PieChart({
           // Hollow circle at slice centroid
           ctx.beginPath();
           ctx.arc(cx, cy, 5, 0, Math.PI * 2);
-          ctx.fillStyle = "#ffffff";
+          ctx.fillStyle = isDarkRef.current ? "#111827" : "#ffffff";
           ctx.fill();
           ctx.strokeStyle = color;
           ctx.lineWidth = 1.5;
@@ -324,12 +339,12 @@ export function PieChart({
           ctx.textAlign = isRight ? "left" : "right";
 
           ctx.font = "bold 27px system-ui, sans-serif";
-          ctx.fillStyle = "#1f2937";
+          ctx.fillStyle = isDarkRef.current ? "#f9fafb" : "#1f2937";
           ctx.textBaseline = "bottom";
           ctx.fillText(lbl, textX, y2 - 2);
 
           ctx.font = "23px system-ui, sans-serif";
-          ctx.fillStyle = "#6b7280";
+          ctx.fillStyle = isDarkRef.current ? "#9ca3af" : "#6b7280";
           ctx.textBaseline = "top";
           ctx.fillText(`${value} (${pct}%)`, textX, y2 + 2);
 
