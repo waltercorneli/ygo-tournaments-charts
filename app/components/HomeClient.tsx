@@ -41,9 +41,13 @@ export function HomeClient() {
         />
       </div>
 
-      <div className="flex-1 min-w-0">
-        <h2 className="text-2xl font-bold mb-4">Pie Chart</h2>
-        <PieChart {...chartData} />
+      <div className="flex-1 min-w-0 flex flex-col gap-8">
+        <div>
+          <h2 className="text-2xl font-bold mb-4">Pie Chart</h2>
+          <div className="max-w-4xl">
+            <PieChart {...chartData} />
+          </div>
+        </div>
         <PlayersTop players={playersInfos.players} />
       </div>
     </main>
