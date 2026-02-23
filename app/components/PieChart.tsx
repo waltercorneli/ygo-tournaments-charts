@@ -39,6 +39,103 @@ export function PieChart({ labels, data, colors }: DecksChartData) {
   const settingsRef = useRef<Record<string, ImageSettings>>({});
   settingsRef.current = imageSettings;
 
+  // Pagination state per label
+  type PageInfo = { offset: number; hasMore: boolean; loading: boolean };
+  const [pickerPages, setPickerPages] = useState<Record<string, PageInfo>>({});
+  const [pagedOptions, setPagedOptions] = useState<Record<string, string[]>>(
+    {},
+  );
+  const [customImages, setCustomImages] = useState<Record<string, string[]>>(
+    {},
+  );
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const uploadLabelRef = useRef<string | null>(null);
+
+  // Options to show in the picker for a given label
+  const currentOptions = (label: string): string[] => [
+    ...(pagedOptions[label] ?? imageOptions[label] ?? []),
+    ...(customImages[label] ?? []),
+  ];
+
+  const fetchPage = async (label: string, offset: number) => {
+    setPickerPages((prev) => ({
+      ...prev,
+      [label]: { ...prev[label], loading: true },
+    }));
+    const queryName = label === "OTHER" ? "Mulcharmy Fuwalos" : label;
+    try {
+      const res = await fetch(
+        `/api/deck-artwork?name=${encodeURIComponent(queryName)}&offset=${offset}`,
+      );
+      const { imageUrls, hasMore } = (await res.json()) as {
+        imageUrls: string[];
+        hasMore: boolean;
+      };
+      const proxied = imageUrls.map(
+        (url: string) => `/api/card-image?url=${encodeURIComponent(url)}`,
+      );
+      // offset 0 → fall back to imageOptions (don't override)
+      if (offset === 0) {
+        setPagedOptions((prev) => {
+          const next = { ...prev };
+          delete next[label];
+          return next;
+        });
+      } else {
+        setPagedOptions((prev) => ({ ...prev, [label]: proxied }));
+      }
+      setPickerPages((prev) => ({
+        ...prev,
+        [label]: { offset, hasMore, loading: false },
+      }));
+    } catch {
+      setPickerPages((prev) => ({
+        ...prev,
+        [label]: {
+          ...(prev[label] ?? { offset: 0, hasMore: false }),
+          loading: false,
+        },
+      }));
+    }
+  };
+
+  // Initialise pagination info when picker opens on a new label
+  useEffect(() => {
+    if (!picker) return;
+    const label = picker.label;
+    if (pickerPages[label]) return; // already initialised
+    // Guess hasMore from initial options length
+    setPickerPages((prev) => ({
+      ...prev,
+      [label]: {
+        offset: 0,
+        hasMore: (imageOptions[label]?.length ?? 0) >= 6,
+        loading: false,
+      },
+    }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [picker?.label]);
+
+  // Handle custom file upload
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    const label = uploadLabelRef.current;
+    if (!file || !label) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = reader.result as string;
+      setCustomImages((prev) => ({
+        ...prev,
+        [label]: [...(prev[label] ?? []), dataUrl],
+      }));
+      // Auto-select the uploaded image
+      setSelectedImages((prev) => ({ ...prev, [label]: dataUrl }));
+    };
+    reader.readAsDataURL(file);
+    // Reset so same file can be re-uploaded
+    e.target.value = "";
+  };
+
   const updateSettings = (label: string, patch: Partial<ImageSettings>) =>
     setImageSettings((prev) => ({
       ...prev,
@@ -66,7 +163,8 @@ export function PieChart({ labels, data, colors }: DecksChartData) {
     for (const [label, url] of Object.entries(selectedImages)) {
       if (imagesRef.current[label]?.url === url) continue;
       const img = new Image();
-      img.crossOrigin = "anonymous";
+      // data: URLs are same-origin — setting crossOrigin on them causes errors
+      if (!url.startsWith("data:")) img.crossOrigin = "anonymous";
       img.src = url;
       img.onload = () => {
         imagesRef.current[label] = { img, url };
@@ -203,12 +301,21 @@ export function PieChart({ labels, data, colors }: DecksChartData) {
     <div className="relative">
       <canvas ref={canvasRef} />
 
-      {picker && (imageOptions[picker.label]?.length ?? 0) > 0 && (
+      {/* Hidden file input for custom image upload */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={handleFileUpload}
+      />
+
+      {picker && currentOptions(picker.label).length > 0 && (
         <div
-          className="absolute z-50 rounded-xl border border-gray-200 bg-white/95 shadow-2xl backdrop-blur-sm"
+          className="absolute z-50 w-80 rounded-xl border border-gray-200 bg-white/95 shadow-2xl backdrop-blur-sm"
           style={{ left: picker.x + 14, top: picker.y - 44 }}
         >
-          {/* Header with label name and close button */}
+          {/* Header */}
           <div className="flex items-center justify-between gap-4 border-b border-gray-100 px-3 py-2">
             <span className="text-xs font-semibold text-gray-600">
               {picker.label}
@@ -222,26 +329,82 @@ export function PieChart({ labels, data, colors }: DecksChartData) {
             </button>
           </div>
 
-          {/* Thumbnails */}
-          <div className="flex gap-2 p-2">
-            {imageOptions[picker.label].map((url, i) => (
-              <button
-                key={i}
-                title={`Opzione ${i + 1}`}
-                onClick={() => handleSelect(picker.label, url)}
-                className={`h-16 w-16 overflow-hidden rounded-lg border-2 transition-transform hover:scale-110 ${
-                  selectedImages[picker.label] === url
-                    ? "border-blue-500"
-                    : "border-gray-200 hover:border-gray-400"
-                }`}
-              >
-                <img
-                  src={url}
-                  alt={`opzione ${i + 1}`}
-                  className="h-full w-full object-cover"
-                />
-              </button>
-            ))}
+          {/* Thumbnails row with prev/next arrows */}
+          <div className="flex items-center gap-1 px-2 pt-2">
+            {/* Prev */}
+            <button
+              onClick={() =>
+                fetchPage(
+                  picker.label,
+                  (pickerPages[picker.label]?.offset ?? 0) - 6,
+                )
+              }
+              disabled={
+                !pickerPages[picker.label]?.offset ||
+                pickerPages[picker.label]?.loading
+              }
+              className="flex h-8 w-6 flex-shrink-0 items-center justify-center rounded text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700 disabled:opacity-25"
+              title="Precedenti"
+            >
+              ◀
+            </button>
+
+            {/* Thumbnails */}
+            <div className="flex flex-1 flex-wrap justify-center gap-2">
+              {pickerPages[picker.label]?.loading ? (
+                <span className="py-6 text-xs text-gray-400">Caricamento…</span>
+              ) : (
+                currentOptions(picker.label).map((url, i) => (
+                  <button
+                    key={url}
+                    title={`Opzione ${i + 1}`}
+                    onClick={() => handleSelect(picker.label, url)}
+                    className={`h-16 w-16 overflow-hidden rounded-lg border-2 transition-transform hover:scale-110 ${
+                      selectedImages[picker.label] === url
+                        ? "border-blue-500"
+                        : "border-gray-200 hover:border-gray-400"
+                    }`}
+                  >
+                    <img
+                      src={url}
+                      alt={`opzione ${i + 1}`}
+                      className="h-full w-full object-cover"
+                    />
+                  </button>
+                ))
+              )}
+            </div>
+
+            {/* Next */}
+            <button
+              onClick={() =>
+                fetchPage(
+                  picker.label,
+                  (pickerPages[picker.label]?.offset ?? 0) + 6,
+                )
+              }
+              disabled={
+                !pickerPages[picker.label]?.hasMore ||
+                pickerPages[picker.label]?.loading
+              }
+              className="flex h-8 w-6 flex-shrink-0 items-center justify-center rounded text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700 disabled:opacity-25"
+              title="Successivi"
+            >
+              ▶
+            </button>
+          </div>
+
+          {/* Upload custom image */}
+          <div className="px-3 pb-2 pt-1">
+            <button
+              onClick={() => {
+                uploadLabelRef.current = picker.label;
+                fileInputRef.current?.click();
+              }}
+              className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-gray-300 py-1.5 text-xs text-gray-500 transition-colors hover:border-blue-400 hover:text-blue-500"
+            >
+              ＋ Carica immagine personalizzata
+            </button>
           </div>
 
           {/* Scale */}
@@ -297,7 +460,7 @@ export function PieChart({ labels, data, colors }: DecksChartData) {
 
 // ── 2D drag pad for image offset ────────────────────────────────────────
 const PAD_SIZE = 80;
-const PAD_MAX_OFFSET = 150;
+const PAD_MAX_OFFSET = 400;
 
 function DragPad({
   offsetX,

@@ -13,20 +13,27 @@ function extractUrls(data: unknown): string[] {
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const name = searchParams.get("name");
+  const offset = parseInt(searchParams.get("offset") ?? "0", 10);
 
   if (!name) {
-    return NextResponse.json({ imageUrls: [] }, { status: 400 });
+    return NextResponse.json(
+      { imageUrls: [], hasMore: false },
+      { status: 400 },
+    );
   }
 
-  // 1. Try by archetype name (returns multiple cards — take up to 6)
+  // 1. Try by archetype name
   try {
     const res = await fetch(
-      `https://db.ygoprodeck.com/api/v7/cardinfo.php?archetype=${encodeURIComponent(name)}&num=6&offset=0`,
+      `https://db.ygoprodeck.com/api/v7/cardinfo.php?archetype=${encodeURIComponent(name)}&num=6&offset=${offset}`,
       { next: { revalidate: 86400 } },
     );
     const json = await res.json();
     const imageUrls = extractUrls(json?.data);
-    if (imageUrls.length > 0) return NextResponse.json({ imageUrls });
+    if (imageUrls.length > 0) {
+      const hasMore = (json?.meta?.rows_remaining ?? 0) > 0;
+      return NextResponse.json({ imageUrls, hasMore });
+    }
   } catch {
     // fall through
   }
@@ -34,13 +41,14 @@ export async function GET(req: Request) {
   // 2. Fallback: fuzzy search by card name
   try {
     const res = await fetch(
-      `https://db.ygoprodeck.com/api/v7/cardinfo.php?fname=${encodeURIComponent(name)}&num=6&offset=0`,
+      `https://db.ygoprodeck.com/api/v7/cardinfo.php?fname=${encodeURIComponent(name)}&num=6&offset=${offset}`,
       { next: { revalidate: 86400 } },
     );
     const json = await res.json();
     const imageUrls = extractUrls(json?.data);
-    return NextResponse.json({ imageUrls });
+    const hasMore = (json?.meta?.rows_remaining ?? 0) > 0;
+    return NextResponse.json({ imageUrls, hasMore });
   } catch {
-    return NextResponse.json({ imageUrls: [] });
+    return NextResponse.json({ imageUrls: [], hasMore: false });
   }
 }
