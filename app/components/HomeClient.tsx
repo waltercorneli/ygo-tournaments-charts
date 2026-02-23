@@ -64,7 +64,7 @@ export function HomeClient() {
 
   const exportPng = async () => {
     if (!exportRef.current) return;
-    const dataUrl = await toPng(exportRef.current, { pixelRatio: 2 });
+    const dataUrl = await toPng(exportRef.current, { pixelRatio: 3 });
     const link = document.createElement("a");
     link.download = `${tournamentData.name || "torneo"}.png`;
     link.href = dataUrl;
@@ -110,7 +110,11 @@ export function HomeClient() {
           </button>
         </div>
 
-        <div ref={exportRef} className="relative rounded-xl overflow-hidden">
+        {/* Measured outer container */}
+        <div
+          ref={exportRef}
+          className="relative w-full aspect-square rounded-xl overflow-hidden"
+        >
           {/* faded background */}
           {bgUrl && (
             <img
@@ -123,9 +127,9 @@ export function HomeClient() {
           )}
 
           {/* foreground content */}
-          <div className="relative flex flex-col gap-8 p-8">
+          <div className="relative h-full flex flex-col gap-6 p-8">
             <TournamentInfo data={tournamentData} />
-            <div className="max-w-4xl mx-auto w-full">
+            <div className="flex-1 min-h-0">
               <PieChart
                 {...chartData}
                 imageSearchOverrides={imageSearchOverrides}

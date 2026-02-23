@@ -239,6 +239,11 @@ export function PieChart({
       data: { labels, datasets: [{ data, backgroundColor: colors }] },
       options: {
         responsive: true,
+        maintainAspectRatio: false,
+        interaction: {
+          mode: "nearest",
+          intersect: true,
+        },
         onHover: (event, elements) => {
           if (elements.length > 0) {
             const idx = elements[0].index;
@@ -280,6 +285,7 @@ export function PieChart({
             },
           },
           tooltip: {
+            enabled: true,
             callbacks: {
               label: (context) =>
                 ` ${context.label}: ${context.parsed} (${(
@@ -303,8 +309,16 @@ export function PieChart({
   };
 
   return (
-    <div className="relative">
-      <canvas ref={canvasRef} />
+    <div className="relative h-full">
+      <canvas
+        ref={canvasRef}
+        onMouseLeave={() => {
+          if (chartRef.current) {
+            chartRef.current.tooltip?.setActiveElements([], { x: 0, y: 0 });
+            chartRef.current.update();
+          }
+        }}
+      />
 
       {/* Hidden file input for custom image upload */}
       <input
