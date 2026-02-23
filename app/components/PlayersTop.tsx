@@ -20,19 +20,19 @@ export function PlayersTop({ players }: PlayersTopProps) {
 
   return (
     <div>
-      <h2 className="text-2xl font-bold mb-4">Top Players</h2>
+      <h2 className="text-4xl font-bold mb-4">Top Players</h2>
       <div className="grid grid-cols-2 gap-4">
         {players.map((player, index) => (
           <div
             key={index}
             className={`flex items-center gap-3 p-4 rounded-xl border-2 ${CARD_STYLES[index] ?? "border-gray-200 bg-white"}`}
           >
-            <span className="text-3xl">{TROPHY_ICONS[index] ?? "🏅"}</span>
+            <span className="text-5xl">{TROPHY_ICONS[index] ?? "🏅"}</span>
             <div className="flex flex-col min-w-0">
-              <span className="font-bold text-base truncate">
+              <span className="font-bold text-2xl truncate">
                 {player.name.trim() || "—"}
               </span>
-              <span className="text-xs text-gray-500 truncate">
+              <span className="text-base text-gray-500 truncate">
                 {player.deck.trim() || "—"}
               </span>
             </div>

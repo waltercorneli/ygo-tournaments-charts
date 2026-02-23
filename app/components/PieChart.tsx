@@ -262,24 +262,7 @@ export function PieChart({
         },
         plugins: {
           legend: {
-            position: "left",
-            labels: {
-              generateLabels: (chart) => {
-                const dataset = chart.data.datasets[0];
-                const rawData = dataset.data as number[];
-                return (chart.data.labels as string[]).map((lbl, i) => {
-                  const value = rawData[i];
-                  const pct = ((value / total) * 100).toFixed(1);
-                  return {
-                    text: `${lbl}: ${value} (${pct}%)`,
-                    fillStyle: colors[i],
-                    strokeStyle: "transparent",
-                    hidden: false,
-                    index: i,
-                  };
-                });
-              },
-            },
+            display: false,
           },
           tooltip: {
             enabled: true,
@@ -307,7 +290,34 @@ export function PieChart({
 
   return (
     <div className="relative h-full">
-      <canvas ref={canvasRef} />
+      {/* Custom legend — top-left overlay */}
+      {labels.length > 0 &&
+        (() => {
+          const total = data.reduce((a, b) => a + b, 0);
+          return (
+            <div className="absolute top-2 left-2 z-10 flex flex-col gap-2">
+              {labels.map((lbl, i) => (
+                <div key={lbl} className="flex items-center gap-2">
+                  <span
+                    className="inline-block h-5 w-5 flex-shrink-0 rounded-sm"
+                    style={{ backgroundColor: colors[i] }}
+                  />
+                  <span className="text-base font-semibold text-gray-700 leading-none">
+                    {lbl}
+                  </span>
+                  <span className="text-base text-gray-400 leading-none">
+                    {data[i]} (
+                    {total > 0 ? ((data[i] / total) * 100).toFixed(1) : "0"}%)
+                  </span>
+                </div>
+              ))}
+            </div>
+          );
+        })()}
+
+      <div className="absolute inset-20">
+        <canvas ref={canvasRef} />
+      </div>
 
       {/* Hidden file input for custom image upload */}
       <input
