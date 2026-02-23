@@ -19,6 +19,7 @@ export function DecksChart({
 }: DecksInputProps) {
   return (
     <div className="shrink-0 flex flex-col gap-2">
+      <h1 className="text-2xl font-bold mb-4">Decks List</h1>
       {/* Column headers */}
       <div className="flex items-center gap-2 px-0.5">
         <span className="w-14 shrink-0" />
