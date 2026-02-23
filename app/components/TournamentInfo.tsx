@@ -47,7 +47,7 @@ export function TournamentInfo({ data, isDark = false }: Props) {
       </div>
 
       {data.logoUrl && (
-        <div className="h-24 w-24 flex-shrink-0 overflow-hidden rounded-full border-4 border-white shadow-lg">
+        <div className="h-36 w-36 flex-shrink-0 overflow-hidden rounded-full border-4 border-white shadow-lg">
           <img
             src={data.logoUrl}
             alt="Logo fumetteria"
