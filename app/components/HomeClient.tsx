@@ -151,7 +151,7 @@ export function HomeClient() {
                 isDark={isDark}
               />
             </div>
-            <div className="flex gap-4 items-stretch">
+            <div className="flex gap-4 items-stretch w-[80%] mx-auto min-h-[15%] p-8">
               <div className="flex-[3] min-w-0">
                 <PlayersTop players={playersInfos.players} isDark={isDark} />
               </div>

@@ -7,7 +7,7 @@ export function TeamInfo({ isDark = false }: { isDark?: boolean }) {
         YGO FROSINONE
       </h2>
       <div
-        className={`flex flex-col gap-4 border px-5 py-4 flex-1 ${isDark ? "border-gray-600/70 bg-gray-800/60" : "border-gray-200/70 bg-gray-50/60"}`}
+        className={`flex flex-col gap-4 border px-5 py-4 flex-1 backdrop-blur-[8px] ${isDark ? "border-gray-600/70 bg-gray-800/60" : "border-gray-200/70 bg-gray-50/60"}`}
       >
         <div
           className={`flex flex-col gap-3 ${isDark ? "text-gray-200" : "text-gray-700"}`}
