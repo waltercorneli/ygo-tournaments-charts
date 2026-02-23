@@ -228,6 +228,27 @@ export function PieChart({
           );
           ctx.restore();
         });
+
+        // Redraw borders on top of images
+        meta.data.forEach((arc) => {
+          const el = arc as ArcElement & {
+            x: number;
+            y: number;
+            startAngle: number;
+            endAngle: number;
+            outerRadius: number;
+          };
+          ctx.save();
+          ctx.strokeStyle = "#ffffff";
+          ctx.lineWidth = 4;
+          ctx.lineJoin = "round";
+          ctx.beginPath();
+          ctx.moveTo(el.x, el.y);
+          ctx.arc(el.x, el.y, el.outerRadius, el.startAngle, el.endAngle);
+          ctx.closePath();
+          ctx.stroke();
+          ctx.restore();
+        });
       },
     };
 
@@ -322,7 +343,17 @@ export function PieChart({
     chartRef.current = new Chart(canvas, {
       type: "pie",
       plugins: [imagePlugin, outsideLabelsPlugin],
-      data: { labels, datasets: [{ data, backgroundColor: colors }] },
+      data: {
+        labels,
+        datasets: [
+          {
+            data,
+            backgroundColor: colors,
+            borderWidth: 4,
+            borderColor: "#ffffff",
+          },
+        ],
+      },
       options: {
         responsive: true,
         maintainAspectRatio: false,
