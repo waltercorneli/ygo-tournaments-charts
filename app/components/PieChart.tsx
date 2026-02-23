@@ -244,22 +244,19 @@ export function PieChart({
           mode: "nearest",
           intersect: true,
         },
-        onHover: (event, elements) => {
+        onClick: (event, elements) => {
           if (elements.length > 0) {
             const idx = elements[0].index;
             const label = labelsRef.current[idx];
             const opts = imageOptionsRef.current[label];
-            if (opts && opts.length > 1) {
-              // Open or switch to the hovered slice; if already on the same label, keep position fixed
-              if (pickerRef.current?.label !== label) {
-                const native = event.native as MouseEvent;
-                const rect = canvas.getBoundingClientRect();
-                setPicker({
-                  label,
-                  x: native.clientX - rect.left,
-                  y: native.clientY - rect.top,
-                });
-              }
+            if (opts && opts.length > 0) {
+              const native = event.native as MouseEvent;
+              const rect = canvas.getBoundingClientRect();
+              setPicker({
+                label,
+                x: native.clientX - rect.left,
+                y: native.clientY - rect.top,
+              });
             }
           }
         },
@@ -310,15 +307,7 @@ export function PieChart({
 
   return (
     <div className="relative h-full">
-      <canvas
-        ref={canvasRef}
-        onMouseLeave={() => {
-          if (chartRef.current) {
-            chartRef.current.tooltip?.setActiveElements([], { x: 0, y: 0 });
-            chartRef.current.update();
-          }
-        }}
-      />
+      <canvas ref={canvasRef} />
 
       {/* Hidden file input for custom image upload */}
       <input
