@@ -1,7 +1,10 @@
 import { useEffect, useState } from "react";
 
 // Returns a map of label → array of up to 6 proxied image URLs
-export function useDeckArtworks(labels: string[]): Record<string, string[]> {
+export function useDeckArtworks(
+  labels: string[],
+  imageSearchOverrides: Record<string, string> = {},
+): Record<string, string[]> {
   const [artworks, setArtworks] = useState<Record<string, string[]>>({});
 
   useEffect(() => {
@@ -17,8 +20,10 @@ export function useDeckArtworks(labels: string[]): Record<string, string[]> {
     const fetchAll = async () => {
       const entries = await Promise.all(
         uniqueLabels.map(async (label) => {
-          // "OTHER" always uses Mulcharmy Fuwalos as artwork
-          const queryName = label === "OTHER" ? "Mulcharmy Fuwalos" : label;
+          // Priority: explicit imageSearch override > "OTHER" default > label itself
+          const queryName =
+            imageSearchOverrides[label]?.trim() ||
+            (label === "OTHER" ? "Mulcharmy Fuwalos" : label);
           try {
             const res = await fetch(
               `/api/deck-artwork?name=${encodeURIComponent(queryName)}`,
@@ -52,7 +57,7 @@ export function useDeckArtworks(labels: string[]): Record<string, string[]> {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [labels.join(",")]);
+  }, [labels.join(","), JSON.stringify(imageSearchOverrides)]);
 
   return artworks;
 }

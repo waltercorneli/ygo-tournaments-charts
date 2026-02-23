@@ -21,6 +21,7 @@ function getColor(index: number): string {
 export interface DeckEntry {
   name: string;
   qty: number;
+  imageSearch?: string; // overrides the artwork API search term (independent from chart label)
 }
 
 export interface DecksChartData {

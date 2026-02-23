@@ -13,7 +13,12 @@ type ImageEntry = { img: HTMLImageElement; url: string };
 type ImageSettings = { scale: number; offsetX: number; offsetY: number };
 const DEFAULT_SETTINGS: ImageSettings = { scale: 1, offsetX: 0, offsetY: 0 };
 
-export function PieChart({ labels, data, colors }: DecksChartData) {
+export function PieChart({
+  labels,
+  data,
+  colors,
+  imageSearchOverrides = {},
+}: DecksChartData & { imageSearchOverrides?: Record<string, string> }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const chartRef = useRef<Chart | null>(null);
   const imagesRef = useRef<Record<string, ImageEntry>>({});
@@ -22,7 +27,7 @@ export function PieChart({ labels, data, colors }: DecksChartData) {
   const labelsRef = useRef<string[]>(labels);
   labelsRef.current = labels;
 
-  const imageOptions = useDeckArtworks(labels);
+  const imageOptions = useDeckArtworks(labels, imageSearchOverrides);
   imageOptionsRef.current = imageOptions;
 
   const [selectedImages, setSelectedImages] = useState<Record<string, string>>(

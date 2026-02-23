@@ -32,13 +32,27 @@ export function HomeClient() {
       return updated;
     });
 
-  const addDeck = () => setDecks((prev) => [...prev, { name: "", qty: 1 }]);
+  const addDeck = () =>
+    setDecks((prev) => [...prev, { name: "", qty: 1, imageSearch: "" }]);
   const removeDeck = (index: number) =>
     setDecks((prev) => prev.filter((_, i) => i !== index));
   const clearDecks = () =>
-    setDecks((prev) => prev.map(({ name }) => ({ name, qty: 1 })));
+    setDecks((prev) =>
+      prev.map(({ name, imageSearch }) => ({ name, qty: 1, imageSearch })),
+    );
 
   const chartData = useDecksInfos(decks);
+
+  // Build imageSearch overrides map: label → imageSearch term
+  const imageSearchOverrides = Object.fromEntries(
+    decks
+      .filter((d) => d.imageSearch?.trim())
+      .map((d) => {
+        const label =
+          d.name.trim() === "" ? "OTHER" : d.name.trim().toUpperCase();
+        return [label, d.imageSearch!.trim()] as const;
+      }),
+  );
 
   return (
     <main className="flex min-h-screen w-full gap-8 p-8">
@@ -58,7 +72,10 @@ export function HomeClient() {
         <div>
           <h2 className="text-2xl font-bold mb-4">Pie Chart</h2>
           <div className="max-w-4xl">
-            <PieChart {...chartData} />
+            <PieChart
+              {...chartData}
+              imageSearchOverrides={imageSearchOverrides}
+            />
           </div>
         </div>
         <PlayersTop players={playersInfos.players} />
