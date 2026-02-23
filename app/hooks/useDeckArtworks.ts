@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 
-// Returns a map of label → proxied image URL for each deck name
-export function useDeckArtworks(labels: string[]): Record<string, string> {
-  const [artworks, setArtworks] = useState<Record<string, string>>({});
+// Returns a map of label → array of up to 6 proxied image URLs
+export function useDeckArtworks(labels: string[]): Record<string, string[]> {
+  const [artworks, setArtworks] = useState<Record<string, string[]>>({});
 
   useEffect(() => {
     const uniqueLabels = [...new Set(labels)].filter(
@@ -23,11 +23,13 @@ export function useDeckArtworks(labels: string[]): Record<string, string> {
             const res = await fetch(
               `/api/deck-artwork?name=${encodeURIComponent(label)}`,
             );
-            const { imageUrl } = (await res.json()) as {
-              imageUrl: string | null;
+            const { imageUrls } = (await res.json()) as {
+              imageUrls: string[];
             };
-            if (!imageUrl) return null;
-            const proxied = `/api/card-image?url=${encodeURIComponent(imageUrl)}`;
+            if (!imageUrls?.length) return null;
+            const proxied = imageUrls.map(
+              (url) => `/api/card-image?url=${encodeURIComponent(url)}`,
+            );
             return [label, proxied] as const;
           } catch {
             return null;
@@ -37,7 +39,7 @@ export function useDeckArtworks(labels: string[]): Record<string, string> {
 
       if (cancelled) return;
 
-      const map: Record<string, string> = {};
+      const map: Record<string, string[]> = {};
       for (const entry of entries) {
         if (entry) map[entry[0]] = entry[1];
       }
