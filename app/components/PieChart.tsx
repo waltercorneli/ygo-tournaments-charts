@@ -231,15 +231,104 @@ export function PieChart({
       },
     };
 
+    const outsideLabelsPlugin: Plugin<"pie"> = {
+      id: "outsideLabels",
+      afterDatasetsDraw(chart) {
+        const ctx = chart.ctx;
+        const allData = data;
+        const meta = chart.getDatasetMeta(0);
+        const tot = allData.reduce((a, b) => a + b, 0);
+
+        meta.data.forEach((arcEl, i) => {
+          const arc = arcEl as ArcElement & {
+            x: number;
+            y: number;
+            startAngle: number;
+            endAngle: number;
+            outerRadius: number;
+          };
+
+          const midAngle = (arc.startAngle + arc.endAngle) / 2;
+          const lbl = labelsRef.current[i];
+          const value = allData[i];
+          const pct = tot > 0 ? ((value / tot) * 100).toFixed(1) : "0";
+          const color = colors[i];
+
+          const cos = Math.cos(midAngle);
+          const sin = Math.sin(midAngle);
+
+          const r0 = arc.outerRadius;
+
+          // Centroid of the slice area
+          const halfAngle = (arc.endAngle - arc.startAngle) / 2;
+          const centroidR =
+            halfAngle < 0.001
+              ? r0 * 0.5
+              : (2 * r0 * Math.sin(halfAngle)) / (3 * halfAngle);
+          const cx = arc.x + cos * centroidR;
+          const cy = arc.y + sin * centroidR;
+
+          // Knee point just outside the arc
+          const r1 = r0 + 28;
+          const x1 = arc.x + cos * r1;
+          const y1 = arc.y + sin * r1;
+
+          const isRight = cos >= 0;
+          const horizLen = 36;
+          const x2 = x1 + (isRight ? horizLen : -horizLen);
+          const y2 = y1;
+
+          // Leader line: centroid → knee → horizontal tick
+          ctx.save();
+          ctx.strokeStyle = color;
+          ctx.lineWidth = 1.5;
+          ctx.lineJoin = "round";
+          ctx.beginPath();
+          ctx.moveTo(cx, cy);
+          ctx.lineTo(x1, y1);
+          ctx.lineTo(x2, y2);
+          ctx.stroke();
+
+          // Hollow circle at slice centroid
+          ctx.beginPath();
+          ctx.arc(cx, cy, 5, 0, Math.PI * 2);
+          ctx.fillStyle = "#ffffff";
+          ctx.fill();
+          ctx.strokeStyle = color;
+          ctx.lineWidth = 1.5;
+          ctx.stroke();
+
+          // Label text
+          const textX = isRight ? x2 + 7 : x2 - 7;
+          ctx.textAlign = isRight ? "left" : "right";
+
+          ctx.font = "bold 27px system-ui, sans-serif";
+          ctx.fillStyle = "#1f2937";
+          ctx.textBaseline = "bottom";
+          ctx.fillText(lbl, textX, y2 - 2);
+
+          ctx.font = "23px system-ui, sans-serif";
+          ctx.fillStyle = "#6b7280";
+          ctx.textBaseline = "top";
+          ctx.fillText(`${value} (${pct}%)`, textX, y2 + 2);
+
+          ctx.restore();
+        });
+      },
+    };
+
     chartRef.current?.destroy();
 
     chartRef.current = new Chart(canvas, {
       type: "pie",
-      plugins: [imagePlugin],
+      plugins: [imagePlugin, outsideLabelsPlugin],
       data: { labels, datasets: [{ data, backgroundColor: colors }] },
       options: {
         responsive: true,
         maintainAspectRatio: false,
+        layout: {
+          padding: 90,
+        },
         interaction: {
           mode: "nearest",
           intersect: true,
@@ -290,32 +379,7 @@ export function PieChart({
 
   return (
     <div className="relative h-full">
-      {/* Custom legend — top-left overlay */}
-      {labels.length > 0 &&
-        (() => {
-          const total = data.reduce((a, b) => a + b, 0);
-          return (
-            <div className="absolute top-2 left-2 z-10 flex flex-col gap-2">
-              {labels.map((lbl, i) => (
-                <div key={lbl} className="flex items-center gap-2">
-                  <span
-                    className="inline-block h-5 w-5 flex-shrink-0 rounded-sm"
-                    style={{ backgroundColor: colors[i] }}
-                  />
-                  <span className="text-base font-semibold text-gray-700 leading-none">
-                    {lbl}
-                  </span>
-                  <span className="text-base text-gray-400 leading-none">
-                    {data[i]} (
-                    {total > 0 ? ((data[i] / total) * 100).toFixed(1) : "0"}%)
-                  </span>
-                </div>
-              ))}
-            </div>
-          );
-        })()}
-
-      <div className="absolute inset-20">
+      <div className="absolute inset-2">
         <canvas ref={canvasRef} />
       </div>
 

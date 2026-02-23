@@ -113,7 +113,7 @@ export function HomeClient() {
         {/* Measured outer container */}
         <div
           ref={exportRef}
-          className="relative w-full aspect-square rounded-xl overflow-hidden"
+          className="relative w-full aspect-square rounded-xl overflow-hidden bg-white"
         >
           {/* faded background */}
           {bgUrl && (
