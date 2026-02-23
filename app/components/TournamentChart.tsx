@@ -1,15 +1,28 @@
 "use client";
 
+import { useRef } from "react";
 import { TournamentData } from "../hooks/useTournamentInfos";
 
 interface Props {
   data: TournamentData;
   setField: (
-    field: keyof TournamentData,
+    field: keyof Omit<TournamentData, "logoUrl">,
   ) => (e: React.ChangeEvent<HTMLInputElement>) => void;
+  setLogoUrl: (url: string) => void;
 }
 
-export function TournamentChart({ data, setField }: Props) {
+export function TournamentChart({ data, setField, setLogoUrl }: Props) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => setLogoUrl(reader.result as string);
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  };
+
   return (
     <div className="flex flex-col gap-2">
       {/* Header row */}
@@ -73,6 +86,45 @@ export function TournamentChart({ data, setField }: Props) {
             onChange={setField("participants")}
             placeholder="es. 128"
             className="px-2.5 py-1.5 text-xs border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-indigo-300"
+          />
+        </div>
+
+        {/* Logo fumetteria */}
+        <div className="col-span-2 flex flex-col gap-0.5">
+          <label className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">
+            Logo fumetteria
+          </label>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="flex-1 flex items-center justify-center gap-1.5 px-2.5 py-1.5 text-xs border border-dashed border-gray-300 rounded hover:border-indigo-400 hover:text-indigo-500 text-gray-500 transition-colors"
+            >
+              {data.logoUrl ? "🖼 Cambia logo" : "＋ Carica logo"}
+            </button>
+            {data.logoUrl && (
+              <>
+                <img
+                  src={data.logoUrl}
+                  alt="logo"
+                  className="h-8 w-8 rounded object-contain border border-gray-200"
+                />
+                <button
+                  type="button"
+                  onClick={() => setLogoUrl("")}
+                  className="px-2 py-1 text-xs rounded border border-red-200 bg-red-50 text-red-600 hover:bg-red-100"
+                >
+                  Rimuovi
+                </button>
+              </>
+            )}
+          </div>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleLogoUpload}
           />
         </div>
       </div>

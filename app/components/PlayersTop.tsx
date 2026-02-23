@@ -1,12 +1,12 @@
 import { PlayerEntry } from "./PlayerChart";
 
-const TROPHY_ICONS = ["🥇", "🥈", "🥉", "🏅"];
+const POSITIONS = ["1°", "2°", "3°", "4°"];
 
-const CARD_STYLES = [
-  "border-yellow-400 bg-yellow-50",
-  "border-gray-400 bg-gray-50",
-  "border-amber-600 bg-amber-50",
-  "border-blue-300 bg-blue-50",
+const TROPHY_COLORS = [
+  "bg-yellow-400 text-white", // 1° oro
+  "bg-gray-300 text-white", // 2° argento
+  "bg-amber-600 text-white", // 3° bronzo
+  "bg-gray-900 text-white", // 4° nero
 ];
 
 interface PlayersTopProps {
@@ -19,25 +19,28 @@ export function PlayersTop({ players }: PlayersTopProps) {
   if (filled.length === 0) return null;
 
   return (
-    <div>
-      <h2 className="text-4xl font-bold mb-4">Top Players</h2>
-      <div className="grid grid-cols-2 gap-4">
-        {players.map((player, index) => (
-          <div
-            key={index}
-            className={`flex items-center gap-3 p-4 rounded-xl border-2 ${CARD_STYLES[index] ?? "border-gray-200 bg-white"}`}
-          >
-            <span className="text-5xl">{TROPHY_ICONS[index] ?? "🏅"}</span>
-            <div className="flex flex-col min-w-0">
-              <span className="font-bold text-2xl truncate">
-                {player.name.trim() || "—"}
+    <div className="flex flex-col gap-2 h-full">
+      <h2 className="text-2xl font-bold text-gray-900">CLASSIFICA</h2>
+      <div className="w-full flex-1 border border-gray-200/70 bg-gray-50/60 px-5 py-4">
+        <div className="grid grid-cols-2 gap-3">
+          {players.map((player, index) => (
+            <div key={index} className="flex items-center gap-3 py-2">
+              <span
+                className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full text-lg font-extrabold ${TROPHY_COLORS[index] ?? "bg-gray-900 text-white"}`}
+              >
+                {POSITIONS[index] ?? `${index + 1}°`}
               </span>
-              <span className="text-base text-gray-500 truncate">
-                {player.deck.trim() || "—"}
-              </span>
+              <div className="flex flex-col min-w-0">
+                <span className="font-bold text-3xl text-gray-900 truncate">
+                  {player.name.trim() || "—"}
+                </span>
+                <span className="text-xl text-gray-500 truncate">
+                  {player.deck.trim() || "—"}
+                </span>
+              </div>
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
     </div>
   );

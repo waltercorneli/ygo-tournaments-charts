@@ -5,6 +5,7 @@ export interface TournamentData {
   date: string;
   location: string;
   participants: string;
+  logoUrl: string;
 }
 
 const INITIAL: TournamentData = {
@@ -12,14 +13,19 @@ const INITIAL: TournamentData = {
   date: "2026-02-23",
   location: "Milano",
   participants: "128",
+  logoUrl: "",
 };
 
 export function useTournamentInfos() {
   const [data, setData] = useState<TournamentData>(INITIAL);
 
   const setField =
-    (field: keyof TournamentData) => (e: React.ChangeEvent<HTMLInputElement>) =>
+    (field: keyof Omit<TournamentData, "logoUrl">) =>
+    (e: React.ChangeEvent<HTMLInputElement>) =>
       setData((prev) => ({ ...prev, [field]: e.target.value }));
 
-  return { data, setField };
+  const setLogoUrl = (url: string) =>
+    setData((prev) => ({ ...prev, logoUrl: url }));
+
+  return { data, setField, setLogoUrl };
 }

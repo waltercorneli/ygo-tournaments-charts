@@ -9,6 +9,7 @@ import { PieChart } from "./PieChart";
 import { BackgroundImage } from "./BackgroundImage";
 import { TournamentInfo } from "./TournamentInfo";
 import { TournamentChart } from "./TournamentChart";
+import { TeamInfo } from "./TeamInfo";
 import { useDecksInfos, DeckEntry } from "../hooks/useDecksInfos";
 import { usePlayersInfos } from "../hooks/usePlayersInfos";
 import { useTournamentInfos } from "../hooks/useTournamentInfos";
@@ -49,8 +50,11 @@ export function HomeClient() {
 
   const chartData = useDecksInfos(decks);
 
-  const { data: tournamentData, setField: setTournamentField } =
-    useTournamentInfos();
+  const {
+    data: tournamentData,
+    setField: setTournamentField,
+    setLogoUrl: setTournamentLogoUrl,
+  } = useTournamentInfos();
 
   const [bgUrl, setBgUrl] = useState<string | null>(null);
   const [bgOpacity, setBgOpacity] = useState(15);
@@ -95,7 +99,11 @@ export function HomeClient() {
           onClear={clearDecks}
         />
 
-        <TournamentChart data={tournamentData} setField={setTournamentField} />
+        <TournamentChart
+          data={tournamentData}
+          setField={setTournamentField}
+          setLogoUrl={setTournamentLogoUrl}
+        />
       </div>
 
       <div className="flex-1 min-w-0 flex flex-col gap-8">
@@ -135,7 +143,14 @@ export function HomeClient() {
                 imageSearchOverrides={imageSearchOverrides}
               />
             </div>
-            <PlayersTop players={playersInfos.players} />
+            <div className="flex gap-4 items-stretch">
+              <div className="flex-[3] min-w-0">
+                <PlayersTop players={playersInfos.players} />
+              </div>
+              <div className="flex-[1] min-w-0">
+                <TeamInfo />
+              </div>
+            </div>
           </div>
         </div>
       </div>
