@@ -1,10 +1,12 @@
 "use client";
 
+import { DeckEntry } from "../hooks/useDecksInfos";
+
 interface DecksInputProps {
-  decks: string[];
+  decks: DeckEntry[];
   onAdd: () => void;
   onRemove: (index: number) => void;
-  onChange: (index: number, value: string) => void;
+  onChange: (index: number, field: keyof DeckEntry, value: string) => void;
   onClear: () => void;
 }
 
@@ -23,10 +25,18 @@ export function DecksChart({
             <label className="text-xs w-14 shrink-0">Deck {index + 1}</label>
             <input
               type="text"
-              value={deck}
-              onChange={(e) => onChange(index, e.target.value)}
+              value={deck.name}
+              onChange={(e) => onChange(index, "name", e.target.value)}
               placeholder="Nome deck (vuoto = OTHER)"
               className="flex-1 px-2.5 py-1.5 text-xs border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-300"
+            />
+            <input
+              type="number"
+              min={1}
+              value={deck.qty}
+              onChange={(e) => onChange(index, "qty", e.target.value)}
+              placeholder="Qtà"
+              className="w-14 px-2 py-1.5 text-xs border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-purple-300"
             />
             <button
               onClick={() => onRemove(index)}

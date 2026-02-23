@@ -18,18 +18,24 @@ function getColor(index: number): string {
   return `hsl(${(index * 137) % 360}, 65%, 55%)`;
 }
 
+export interface DeckEntry {
+  name: string;
+  qty: number;
+}
+
 export interface DecksChartData {
   labels: string[];
   data: number[];
   colors: string[];
 }
 
-export function useDecksInfos(decks: string[]): DecksChartData {
+export function useDecksInfos(decks: DeckEntry[]): DecksChartData {
   return useMemo(() => {
     const grouped: Record<string, number> = {};
     for (const deck of decks) {
-      const name = deck.trim() === "" ? "OTHER" : deck.trim().toUpperCase();
-      grouped[name] = (grouped[name] ?? 0) + 1;
+      const name =
+        deck.name.trim() === "" ? "OTHER" : deck.name.trim().toUpperCase();
+      grouped[name] = (grouped[name] ?? 0) + (deck.qty > 0 ? deck.qty : 1);
     }
 
     const labels = Object.keys(grouped);

@@ -5,25 +5,38 @@ import { PlayerChart } from "./PlayerChart";
 import { PlayersTop } from "./PlayersTop";
 import { DecksChart } from "./DecksChart";
 import { PieChart } from "./PieChart";
-import { useDecksInfos } from "../hooks/useDecksInfos";
+import { useDecksInfos, DeckEntry } from "../hooks/useDecksInfos";
 import { usePlayersInfos } from "../hooks/usePlayersInfos";
 
 export function HomeClient() {
   const playersInfos = usePlayersInfos(4);
 
-  const [decks, setDecks] = useState<string[]>(["", "", "", "OTHER"]);
+  const [decks, setDecks] = useState<DeckEntry[]>([
+    { name: "", qty: 1 },
+    { name: "", qty: 1 },
+    { name: "", qty: 1 },
+    { name: "OTHER", qty: 1 },
+  ]);
 
-  const handleDeckChange = (index: number, value: string) =>
+  const handleDeckChange = (
+    index: number,
+    field: keyof DeckEntry,
+    value: string,
+  ) =>
     setDecks((prev) => {
       const updated = [...prev];
-      updated[index] = value;
+      updated[index] = {
+        ...updated[index],
+        [field]: field === "qty" ? Math.max(1, Number(value)) : value,
+      };
       return updated;
     });
 
-  const addDeck = () => setDecks((prev) => [...prev, ""]);
+  const addDeck = () => setDecks((prev) => [...prev, { name: "", qty: 1 }]);
   const removeDeck = (index: number) =>
     setDecks((prev) => prev.filter((_, i) => i !== index));
-  const clearDecks = () => setDecks((prev) => prev.map(() => ""));
+  const clearDecks = () =>
+    setDecks((prev) => prev.map(({ name }) => ({ name, qty: 1 })));
 
   const chartData = useDecksInfos(decks);
 
