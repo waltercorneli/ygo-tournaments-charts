@@ -103,7 +103,7 @@ export function HomeClient() {
           {/* foreground content */}
           <div className="relative flex flex-col gap-8 p-8">
             <TournamentInfo data={tournamentData} />
-            <div className="max-w-4xl">
+            <div className="max-w-4xl mx-auto w-full">
               <PieChart
                 {...chartData}
                 imageSearchOverrides={imageSearchOverrides}
