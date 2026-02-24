@@ -99,6 +99,7 @@ export function PieChart({
   );
   const fileInputRef = useRef<HTMLInputElement>(null);
   const uploadLabelRef = useRef<string | null>(null);
+  const pickerPopupRef = useRef<HTMLDivElement | null>(null);
 
   // Detect small screens (< 768 px, i.e. below the Tailwind "md" breakpoint)
   const [isMobile, setIsMobile] = useState(false);
@@ -157,6 +158,23 @@ export function PieChart({
       }));
     }
   };
+
+  // Close picker when clicking outside it
+  useEffect(() => {
+    if (!picker) return;
+    const handleOutside = (e: PointerEvent) => {
+      if (
+        pickerPopupRef.current &&
+        !pickerPopupRef.current.contains(e.target as Node)
+      ) {
+        setPicker(null);
+      }
+    };
+    // Use capture so we catch clicks before Chart.js's own handlers
+    document.addEventListener("pointerdown", handleOutside, true);
+    return () =>
+      document.removeEventListener("pointerdown", handleOutside, true);
+  }, [picker]);
 
   // Initialise pagination info when picker opens on a new label
   useEffect(() => {
@@ -384,6 +402,34 @@ export function PieChart({
           ctx.restore();
         });
 
+        // White highlight overlay on hovered slice
+        const activeEls = chart.getActiveElements();
+        if (activeEls.length > 0) {
+          const activeArc = meta.data[activeEls[0].index] as ArcElement & {
+            x: number;
+            y: number;
+            startAngle: number;
+            endAngle: number;
+            outerRadius: number;
+          };
+          if (activeArc) {
+            ctx.save();
+            ctx.beginPath();
+            ctx.moveTo(activeArc.x, activeArc.y);
+            ctx.arc(
+              activeArc.x,
+              activeArc.y,
+              activeArc.outerRadius,
+              activeArc.startAngle,
+              activeArc.endAngle,
+            );
+            ctx.closePath();
+            ctx.fillStyle = "rgba(255,255,255,0.22)";
+            ctx.fill();
+            ctx.restore();
+          }
+        }
+
         // Percentage text inside slices (used when bar-chart labels are shown instead)
         if (showSlicePercentagesRef.current) {
           const tot = data.reduce((a, b) => a + b, 0);
@@ -560,6 +606,9 @@ export function PieChart({
           mode: "nearest",
           intersect: true,
         },
+        onHover: (_event, elements) => {
+          canvas.style.cursor = elements.length > 0 ? "pointer" : "default";
+        },
         onClick: (event, elements) => {
           if (elements.length > 0) {
             const idx = elements[0].index;
@@ -573,11 +622,18 @@ export function PieChart({
               // click position into logical coordinates so the picker appears in the
               // correct spot regardless of the CSS transform scale applied by HomeClient.
               const cssScale = rect.width / canvas.offsetWidth;
-              setPicker({
-                label,
-                x: (native.clientX - rect.left) / cssScale,
-                y: (native.clientY - rect.top) / cssScale,
-              });
+              const POPUP_W = 320; // w-80 in Tailwind
+              const POPUP_H = 420; // generous estimate for the picker height
+              const canvasW = canvas.offsetWidth;
+              const canvasH = canvas.offsetHeight;
+              const rawX = (native.clientX - rect.left) / cssScale;
+              const rawY = (native.clientY - rect.top) / cssScale;
+              // Horizontal: open to the right when there's room, otherwise to the left
+              const px =
+                rawX + 14 + POPUP_W > canvasW ? rawX - POPUP_W - 14 : rawX + 14;
+              // Vertical: clamp so it never overflows bottom or top
+              const py = Math.max(0, Math.min(rawY - 44, canvasH - POPUP_H));
+              setPicker({ label, x: px, y: py });
             }
           }
         },
@@ -586,14 +642,7 @@ export function PieChart({
             display: false,
           },
           tooltip: {
-            enabled: true,
-            callbacks: {
-              label: (context) =>
-                ` ${context.label}: ${context.parsed} (${(
-                  (context.parsed / total) *
-                  100
-                ).toFixed(1)}%)`,
-            },
+            enabled: false,
           },
         },
       },
@@ -759,8 +808,9 @@ export function PieChart({
       {/* ── Desktop floating picker (shown only on md+) ───────────────── */}
       {!isMobile && picker && currentOptions(picker.label).length > 0 && (
         <div
+          ref={pickerPopupRef}
           className="absolute z-50 w-80 rounded-xl border border-gray-200 bg-white/95 shadow-2xl backdrop-blur-sm"
-          style={{ left: picker.x + 14, top: picker.y - 44 }}
+          style={{ left: picker.x, top: picker.y }}
         >
           {renderPickerInner(picker.label)}
         </div>
@@ -772,7 +822,10 @@ export function PieChart({
       {isMobile &&
         typeof document !== "undefined" &&
         createPortal(
-          <div className="fixed bottom-0 left-0 right-0 z-[20] border-t border-gray-200 bg-white shadow-2xl">
+          <div
+            ref={pickerPopupRef}
+            className="fixed bottom-0 left-0 right-0 z-[20] border-t border-gray-200 bg-white shadow-2xl"
+          >
             {picker && currentOptions(picker.label).length > 0 ? (
               <div className="max-h-[50vh] overflow-y-auto">
                 {renderPickerInner(picker.label)}
