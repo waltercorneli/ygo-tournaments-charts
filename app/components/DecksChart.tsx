@@ -45,7 +45,7 @@ export function DecksChart({
             ⓘ
           </span>
         </div>
-        <div className="w-14 flex items-center gap-1">
+        <div className="w-24 flex items-center gap-1">
           <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
             Qtà
           </span>
@@ -98,7 +98,7 @@ export function DecksChart({
                 className="flex-1 min-w-0 px-2.5 py-1.5 text-xs border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-300 md:w-28 md:flex-none"
               />
               {/* Qty stepper */}
-              <div className="flex items-center border border-gray-300 rounded overflow-hidden shrink-0">
+              <div className="flex items-center border border-gray-300 rounded overflow-hidden shrink-0 w-24">
                 <button
                   onClick={() =>
                     onChange(index, "qty", String(Math.max(1, deck.qty - 1)))
@@ -107,9 +107,16 @@ export function DecksChart({
                 >
                   −
                 </button>
-                <span className="px-2.5 py-1 text-xs min-w-[2rem] text-center select-none">
-                  {deck.qty}
-                </span>
+                <input
+                  type="number"
+                  min={1}
+                  value={deck.qty}
+                  onChange={(e) => {
+                    const v = parseInt(e.target.value, 10);
+                    if (!isNaN(v) && v >= 1) onChange(index, "qty", String(v));
+                  }}
+                  className="flex-1 min-w-0 py-1 text-xs text-center bg-white focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                />
                 <button
                   onClick={() => onChange(index, "qty", String(deck.qty + 1))}
                   className="px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 border-l border-gray-300"

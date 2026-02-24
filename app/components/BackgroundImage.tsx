@@ -75,30 +75,32 @@ export function BackgroundImage({ onImageChange }: Props) {
       </div>
 
       {/* Search bar */}
-      <form onSubmit={handleSearch} className="flex gap-2">
+      <form onSubmit={handleSearch} className="flex flex-wrap gap-2">
         <input
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Nome carta (es. Blue-Eyes White Dragon)"
-          className="flex-1 px-2.5 py-1.5 text-xs border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-indigo-300"
+          className="flex-1 min-w-0 px-2.5 py-1.5 text-xs border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-indigo-300"
         />
-        <button
-          type="submit"
-          disabled={loading || !query.trim()}
-          className="px-3 py-1.5 text-xs rounded border border-gray-300 bg-gray-100 hover:bg-gray-200 disabled:opacity-40"
-        >
-          {loading ? "…" : "Cerca"}
-        </button>
-        {selected && (
+        <div className="flex gap-2 shrink-0">
           <button
-            type="button"
-            onClick={handleClear}
-            className="px-3 py-1.5 text-xs rounded border border-red-200 bg-red-50 text-red-600 hover:bg-red-100"
+            type="submit"
+            disabled={loading || !query.trim()}
+            className="px-3 py-1.5 text-xs rounded border border-gray-300 bg-gray-100 hover:bg-gray-200 disabled:opacity-40"
           >
-            Rimuovi
+            {loading ? "…" : "Cerca"}
           </button>
-        )}
+          {selected && (
+            <button
+              type="button"
+              onClick={handleClear}
+              className="px-3 py-1.5 text-xs rounded border border-red-200 bg-red-50 text-red-600 hover:bg-red-100"
+            >
+              Rimuovi
+            </button>
+          )}
+        </div>
       </form>
 
       {/* Opacity slider — only when an image is selected */}
