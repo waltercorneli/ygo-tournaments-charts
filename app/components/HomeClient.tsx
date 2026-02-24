@@ -23,11 +23,11 @@ export function HomeClient() {
   const playersInfos = usePlayersInfos(4);
 
   const [decks, setDecks] = useState<DeckEntry[]>([
-    { name: "Snake-Eye", qty: 28 },
-    { name: "Yubel", qty: 22 },
-    { name: "Branded", qty: 18 },
-    { name: "Tenpai Dragon", qty: 15 },
-    { name: "OTHER", qty: 45 },
+    { name: "Snake-Eye", qty: 8 },
+    { name: "Yubel", qty: 2 },
+    { name: "Branded", qty: 1 },
+    { name: "Tenpai Dragon", qty: 5 },
+    { name: "OTHER", qty: 5 },
   ]);
 
   const handleDeckChange = (
@@ -72,7 +72,7 @@ export function HomeClient() {
   const [bgOpacity, setBgOpacity] = useState(15);
   const [isDark, setIsDark] = useState(true);
   const [isDarkPanels, setIsDarkPanels] = useState(true);
-  const [panelOpacity, setPanelOpacity] = useState(60);
+  const [panelOpacity, setPanelOpacity] = useState(15);
   const [darkPieStroke, setDarkPieStroke] = useState(true);
   const [showTeamInfo, setShowTeamInfo] = useState(true);
   const [showSideChart, setShowSideChart] = useState(true);
