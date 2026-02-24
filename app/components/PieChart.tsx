@@ -420,12 +420,12 @@ export function PieChart({
             : x2 - Math.round(7 * lS);
           ctx.textAlign = isRight ? "left" : "right";
 
-          ctx.font = `bold ${Math.max(6, Math.round(12 * lS))}px system-ui, sans-serif`;
+          ctx.font = `bold ${Math.max(10, Math.round(20 * lS))}px system-ui, sans-serif`;
           ctx.fillStyle = isDarkRef.current ? "#f9fafb" : "#1f2937";
           ctx.textBaseline = "bottom";
           ctx.fillText(lbl, textX, y2 - Math.round(2 * lS));
 
-          ctx.font = `${Math.max(5, Math.round(10 * lS))}px system-ui, sans-serif`;
+          ctx.font = `${Math.max(9, Math.round(17 * lS))}px system-ui, sans-serif`;
           ctx.fillStyle = isDarkRef.current ? "#d1d5db" : "#9ca3af";
           ctx.textBaseline = "top";
           ctx.fillText(`${value} (${pct}%)`, textX, y2 + Math.round(2 * lS));

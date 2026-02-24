@@ -20,12 +20,12 @@ export function DecksBarChart({
           <div key={i} className="flex flex-col gap-0.5">
             <div className="flex items-baseline justify-between gap-2">
               <span
-                className={`text-[0.55rem] font-semibold truncate ${isDark ? "text-white" : "text-gray-900"}`}
+                className={`text-[0.9rem] font-semibold truncate ${isDark ? "text-white" : "text-gray-900"}`}
               >
                 {label}
               </span>
               <span
-                className={`text-[0.55rem] flex-shrink-0 ${isDark ? "text-gray-300" : "text-gray-500"}`}
+                className={`text-[0.9rem] flex-shrink-0 ${isDark ? "text-gray-300" : "text-gray-500"}`}
               >
                 {data[i]} ({pct}%)
               </span>

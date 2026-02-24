@@ -20,14 +20,14 @@ export function TournamentInfo({ data, participants, isDark = false }: Props) {
       <div className="w-full px-5 py-4 text-center">
         {data.name && (
           <h2
-            className={`text-[2.6rem] font-extrabold tracking-tight ${isDark ? "text-white" : "text-gray-900"}`}
+            className={`text-[3.6rem] font-extrabold tracking-tight ${isDark ? "text-white" : "text-gray-900"}`}
           >
             {data.name}
           </h2>
         )}
 
         <div
-          className={`mt-2 flex flex-wrap justify-center gap-x-3 gap-y-1 text-[1.05rem] ${isDark ? "text-gray-300" : "text-gray-600"}`}
+          className={`mt-2 flex flex-wrap justify-center gap-x-3 gap-y-1 text-[1.5rem] ${isDark ? "text-gray-300" : "text-gray-600"}`}
         >
           {[
             data.date &&
