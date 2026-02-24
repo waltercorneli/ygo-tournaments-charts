@@ -38,7 +38,7 @@ export function PlayersTop({ players, isDark = false }: PlayersTopProps) {
         CLASSIFICA
       </h2>
       <div
-        className={`w-full flex-1 border px-5 py-4 backdrop-blur-[8px] ${isDark ? "border-gray-600/70 bg-gray-800/60" : "border-gray-200/70 bg-gray-50/60"}`}
+        className={`w-full flex-1 rounded border px-5 py-4 backdrop-blur-[4px] ${isDark ? "border-gray-600/70 bg-gray-800/60" : "border-gray-200/70 bg-gray-50/60"}`}
       >
         <div
           className="grid items-center gap-x-2 gap-y-2 h-full"

@@ -7,7 +7,7 @@ export function TeamInfo({ isDark = false }: { isDark?: boolean }) {
         YGO FROSINONE
       </h2>
       <div
-        className={`flex flex-col gap-2 border px-4 py-3 flex-1 backdrop-blur-[8px] ${isDark ? "border-gray-600/70 bg-gray-800/60" : "border-gray-200/70 bg-gray-50/60"}`}
+        className={`flex flex-col gap-2 rounded border px-4 py-3 flex-1 backdrop-blur-[4px] ${isDark ? "border-gray-600/70 bg-gray-800/60" : "border-gray-200/70 bg-gray-50/60"}`}
       >
         {/* Logo YGO Frosinone */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
