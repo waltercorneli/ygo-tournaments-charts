@@ -138,6 +138,8 @@ export function HomeClient() {
       canvas: HTMLCanvasElement;
     };
     const canvasReplacements: CanvasReplacement[] = [];
+    type ImgRestoration = { img: HTMLImageElement; originalSrc: string };
+    const imgRestorations: ImgRestoration[] = [];
 
     try {
       await Promise.all(
@@ -153,14 +155,14 @@ export function HomeClient() {
           img.style.width = `${c.offsetWidth}px`;
           img.style.height = `${c.offsetHeight}px`;
           img.className = c.className;
+          // Wait for the browser to fully decode the data URL before toPng runs
+          await img.decode().catch(() => {});
           c.parentElement?.replaceChild(img, c);
           canvasReplacements.push({ placeholder: img, canvas: c });
         }),
       );
 
       // 2. Pre-convert every <img> src to a data URL (fixes logos on iOS).
-      type ImgRestoration = { img: HTMLImageElement; originalSrc: string };
-      const imgRestorations: ImgRestoration[] = [];
       const imgEls = Array.from(el.querySelectorAll("img"));
       setExportStatus(`🔄 Conversione immagini (0 / ${imgEls.length})…`);
       let converted = 0;
@@ -177,6 +179,8 @@ export function HomeClient() {
           if (dataUrl) {
             imgRestorations.push({ img, originalSrc: src });
             img.src = dataUrl;
+            // Wait for decode so toPng finds the image already painted
+            await img.decode().catch(() => {});
           }
         }),
       );
@@ -194,12 +198,11 @@ export function HomeClient() {
       link.download = `${tournamentData.name || "torneo"}.png`;
       link.href = dataUrl;
       link.click();
-
-      // Restore img src values
+    } finally {
+      // Always restore img src values — even if toPng throws
       imgRestorations.forEach(({ img, originalSrc }) => {
         img.src = originalSrc;
       });
-    } finally {
       canvasReplacements.forEach(({ placeholder, canvas }) => {
         placeholder.parentElement?.replaceChild(canvas, placeholder);
       });
