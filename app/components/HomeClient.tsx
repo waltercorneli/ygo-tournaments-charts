@@ -126,7 +126,7 @@ export function HomeClient() {
   return (
     <main className="flex h-screen w-full gap-8 p-8 overflow-hidden">
       {/* Left column */}
-      <div className="flex flex-col gap-8 overflow-y-auto">
+      <div className="flex flex-col gap-8 overflow-y-auto overflow-x-hidden">
         <PlayerChart {...playersInfos} />
 
         <DecksChart
