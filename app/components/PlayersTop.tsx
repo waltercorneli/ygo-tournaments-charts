@@ -10,6 +10,67 @@ const POSITIONS = ["🥇", "🥈", "🥉", "🥉"];
 type ImageSettings = { scale: number; offsetX: number; offsetY: number };
 const DEFAULT_SETTINGS: ImageSettings = { scale: 1, offsetX: 0, offsetY: 0 };
 
+// ── Mobile arrow pad ──────────────────────────────────────────────────────
+const ARROW_STEP = 20;
+const ARROW_MAX_OFFSET = 400;
+
+function ArrowPad({
+  offsetX,
+  offsetY,
+  onChange,
+}: {
+  offsetX: number;
+  offsetY: number;
+  onChange: (x: number, y: number) => void;
+}) {
+  const clamp = (v: number) =>
+    Math.max(-ARROW_MAX_OFFSET, Math.min(ARROW_MAX_OFFSET, v));
+
+  const move = (dx: number, dy: number) =>
+    onChange(clamp(offsetX + dx), clamp(offsetY + dy));
+
+  const btnCls =
+    "flex h-10 w-10 items-center justify-center rounded-lg border border-gray-200 bg-gray-50 text-lg text-gray-700 active:bg-gray-200 select-none";
+
+  return (
+    <div className="grid grid-cols-3 gap-1">
+      <span />
+      <button
+        className={btnCls}
+        onPointerDown={() => move(0, -ARROW_STEP)}
+        title="Su"
+      >
+        ▲
+      </button>
+      <span />
+      <button
+        className={btnCls}
+        onPointerDown={() => move(-ARROW_STEP, 0)}
+        title="Sinistra"
+      >
+        ◀
+      </button>
+      <span />
+      <button
+        className={btnCls}
+        onPointerDown={() => move(ARROW_STEP, 0)}
+        title="Destra"
+      >
+        ▶
+      </button>
+      <span />
+      <button
+        className={btnCls}
+        onPointerDown={() => move(0, ARROW_STEP)}
+        title="Giù"
+      >
+        ▼
+      </button>
+      <span />
+    </div>
+  );
+}
+
 // ── Drag pad ──────────────────────────────────────────────────────────────
 const PAD_SIZE = 80;
 const PAD_MAX_OFFSET = 200;
@@ -197,6 +258,16 @@ export function PlayersTop({
   const pickerRef = useRef<HTMLDivElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const uploadLabelRef = useRef<string | null>(null);
+
+  // Detect small screens (< 768 px, i.e. below the Tailwind "md" breakpoint)
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 767px)");
+    setIsMobile(mq.matches);
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
 
   // Seed from PieChart sliceImages (only keys not yet locally set)
   useEffect(() => {
@@ -437,11 +508,23 @@ export function PlayersTop({
         <span title="Posizione" className="select-none text-base">
           ✥
         </span>
-        <DragPad
-          offsetX={localSettings[label]?.offsetX ?? 0}
-          offsetY={localSettings[label]?.offsetY ?? 0}
-          onChange={(x, y) => updateSettings(label, { offsetX: x, offsetY: y })}
-        />
+        {isMobile ? (
+          <ArrowPad
+            offsetX={localSettings[label]?.offsetX ?? 0}
+            offsetY={localSettings[label]?.offsetY ?? 0}
+            onChange={(x, y) =>
+              updateSettings(label, { offsetX: x, offsetY: y })
+            }
+          />
+        ) : (
+          <DragPad
+            offsetX={localSettings[label]?.offsetX ?? 0}
+            offsetY={localSettings[label]?.offsetY ?? 0}
+            onChange={(x, y) =>
+              updateSettings(label, { offsetX: x, offsetY: y })
+            }
+          />
+        )}
         <button
           onClick={() => updateSettings(label, { offsetX: 0, offsetY: 0 })}
           className="text-sm text-gray-400 hover:text-gray-700"
@@ -540,8 +623,9 @@ export function PlayersTop({
         </div>
       </div>
 
-      {/* Floating picker popup — portalled to body to escape CSS-transform ancestor */}
-      {picker &&
+      {/* ── Desktop floating picker ─────────────────────────────────────── */}
+      {!isMobile &&
+        picker &&
         typeof document !== "undefined" &&
         createPortal(
           <div
@@ -550,6 +634,29 @@ export function PlayersTop({
             style={{ left: picker.x, bottom: window.innerHeight - picker.y }}
           >
             {renderPickerInner(picker.label)}
+          </div>,
+          document.body,
+        )}
+
+      {/* ── Mobile panel: fixed bottom, portalled to body.
+          z-[20] keeps it below the drawer (z-40) and backdrop (z-30)
+          so opening the menu naturally covers it. */}
+      {isMobile &&
+        typeof document !== "undefined" &&
+        createPortal(
+          <div
+            ref={pickerRef}
+            className="fixed bottom-0 left-0 right-0 z-[20] border-t border-gray-200 bg-white shadow-2xl"
+          >
+            {picker ? (
+              <div className="max-h-[50vh] overflow-y-auto">
+                {renderPickerInner(picker.label)}
+              </div>
+            ) : (
+              <p className="px-4 py-3 text-center text-xs text-gray-400">
+                Tocca un&apos;immagine del mazzo per cambiarla
+              </p>
+            )}
           </div>,
           document.body,
         )}
