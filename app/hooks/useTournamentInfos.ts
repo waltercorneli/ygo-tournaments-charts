@@ -11,7 +11,7 @@ const INITIAL: TournamentData = {
   name: "YGO Regional Milano",
   date: "2026-02-23",
   location: "Milano",
-  logoUrl: "",
+  logoUrl: "/logos/logo-torre-nera.png",
 };
 
 export function useTournamentInfos() {

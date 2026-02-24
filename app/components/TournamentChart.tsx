@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { TournamentData } from "../hooks/useTournamentInfos";
 
 interface Props {
@@ -13,6 +13,14 @@ interface Props {
 
 export function TournamentChart({ data, setField, setLogoUrl }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [logoList, setLogoList] = useState<string[]>([]);
+
+  useEffect(() => {
+    fetch("/api/logos")
+      .then((r) => r.json())
+      .then(({ logos }: { logos: string[] }) => setLogoList(logos))
+      .catch(() => {});
+  }, []);
 
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -79,6 +87,29 @@ export function TournamentChart({ data, setField, setLogoUrl }: Props) {
           <label className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">
             Logo fumetteria
           </label>
+
+          {/* Select from existing logos */}
+          {logoList.length > 0 && (
+            <select
+              value={
+                logoList.includes(data.logoUrl.replace("/logos/", ""))
+                  ? data.logoUrl.replace("/logos/", "")
+                  : ""
+              }
+              onChange={(e) =>
+                setLogoUrl(e.target.value ? `/logos/${e.target.value}` : "")
+              }
+              className="px-2.5 py-1.5 text-xs border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-indigo-300 bg-white"
+            >
+              <option value="">— nessuno —</option>
+              {logoList.map((f) => (
+                <option key={f} value={f}>
+                  {f}
+                </option>
+              ))}
+            </select>
+          )}
+
           <div className="flex items-center gap-2">
             <button
               type="button"
