@@ -107,6 +107,26 @@ export function HomeClient() {
     // causing a mismatch between canvas dimensions and rendered content.
     const prevTransform = el.style.transform;
     el.style.transform = "scale(1)";
+
+    // iOS Safari blocks foreignObject-based canvas serialisation (used internally
+    // by html-to-image), so the chart canvas renders as a blank rectangle.
+    // Work-around: snapshot every <canvas> to a data URL, overlay a matching
+    // <img> on top of it for the duration of the export, then restore.
+    const canvases = Array.from(el.querySelectorAll("canvas"));
+    const snapshots = canvases.map((canvas) => {
+      const dataUrl = (canvas as HTMLCanvasElement).toDataURL("image/png");
+      const img = document.createElement("img");
+      img.src = dataUrl;
+      img.style.position = "absolute";
+      img.style.inset = "0";
+      img.style.width = "100%";
+      img.style.height = "100%";
+      // Insert sibling so it occupies the same space as the canvas
+      canvas.parentElement?.appendChild(img);
+      (canvas as HTMLElement).style.opacity = "0";
+      return { canvas: canvas as HTMLElement, img };
+    });
+
     try {
       // pixelRatio 3 → 3240×3240 output
       // skipFonts: true prevents html-to-image from iterating CSS font rules,
@@ -122,6 +142,11 @@ export function HomeClient() {
       link.href = dataUrl;
       link.click();
     } finally {
+      // Restore canvas visibility and remove temporary img overlays
+      snapshots.forEach(({ canvas, img }) => {
+        canvas.style.opacity = "";
+        img.parentElement?.removeChild(img);
+      });
       el.style.transform = prevTransform;
     }
   };
