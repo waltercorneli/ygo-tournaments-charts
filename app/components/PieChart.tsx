@@ -264,6 +264,7 @@ export function PieChart({
         });
 
         // Redraw borders on top of images
+        const bS = chart.width / 1080;
         meta.data.forEach((arc) => {
           const el = arc as ArcElement & {
             x: number;
@@ -274,7 +275,7 @@ export function PieChart({
           };
           ctx.save();
           ctx.strokeStyle = isDarkRef.current ? "#1f2937" : "#ffffff";
-          ctx.lineWidth = 4;
+          ctx.lineWidth = Math.max(1, 4 * bS);
           ctx.lineJoin = "round";
           ctx.beginPath();
           ctx.moveTo(el.x, el.y);
@@ -294,6 +295,7 @@ export function PieChart({
         const allData = data;
         const meta = chart.getDatasetMeta(0);
         const tot = allData.reduce((a, b) => a + b, 0);
+        const lS = chart.width / 1080; // label scale factor
 
         meta.data.forEach((arcEl, i) => {
           const arc = arcEl as ArcElement & {
@@ -325,19 +327,19 @@ export function PieChart({
           const cy = arc.y + sin * centroidR;
 
           // Knee point just outside the arc
-          const r1 = r0 + 28;
+          const r1 = r0 + Math.round(28 * lS);
           const x1 = arc.x + cos * r1;
           const y1 = arc.y + sin * r1;
 
           const isRight = cos >= 0;
-          const horizLen = 36;
+          const horizLen = Math.round(36 * lS);
           const x2 = x1 + (isRight ? horizLen : -horizLen);
           const y2 = y1;
 
           // Leader line: centroid → knee → horizontal tick
           ctx.save();
           ctx.strokeStyle = color;
-          ctx.lineWidth = 1.5;
+          ctx.lineWidth = Math.max(0.5, 1.5 * lS);
           ctx.lineJoin = "round";
           ctx.beginPath();
           ctx.moveTo(cx, cy);
@@ -347,26 +349,28 @@ export function PieChart({
 
           // Hollow circle at slice centroid
           ctx.beginPath();
-          ctx.arc(cx, cy, 5, 0, Math.PI * 2);
+          ctx.arc(cx, cy, Math.max(2, Math.round(5 * lS)), 0, Math.PI * 2);
           ctx.fillStyle = isDarkRef.current ? "#111827" : "#ffffff";
           ctx.fill();
           ctx.strokeStyle = color;
-          ctx.lineWidth = 1.5;
+          ctx.lineWidth = Math.max(0.5, 1.5 * lS);
           ctx.stroke();
 
           // Label text
-          const textX = isRight ? x2 + 7 : x2 - 7;
+          const textX = isRight
+            ? x2 + Math.round(7 * lS)
+            : x2 - Math.round(7 * lS);
           ctx.textAlign = isRight ? "left" : "right";
 
-          ctx.font = "bold 27px system-ui, sans-serif";
+          ctx.font = `bold ${Math.max(5, Math.round(10 * lS))}px system-ui, sans-serif`;
           ctx.fillStyle = isDarkRef.current ? "#f9fafb" : "#1f2937";
           ctx.textBaseline = "bottom";
-          ctx.fillText(lbl, textX, y2 - 2);
+          ctx.fillText(lbl, textX, y2 - Math.round(2 * lS));
 
-          ctx.font = "23px system-ui, sans-serif";
+          ctx.font = `${Math.max(4, Math.round(8 * lS))}px system-ui, sans-serif`;
           ctx.fillStyle = isDarkRef.current ? "#d1d5db" : "#9ca3af";
           ctx.textBaseline = "top";
-          ctx.fillText(`${value} (${pct}%)`, textX, y2 + 2);
+          ctx.fillText(`${value} (${pct}%)`, textX, y2 + Math.round(2 * lS));
 
           ctx.restore();
         });
@@ -374,6 +378,11 @@ export function PieChart({
     };
 
     chartRef.current?.destroy();
+
+    // Scale all design-time pixel values relative to the 1080px reference size.
+    // When the inner div is fixed at 1080px (HomeClient), s ≈ 1 and values are
+    // unchanged. When the canvas is smaller, everything shrinks proportionally.
+    const s = canvas.offsetWidth / 1080;
 
     chartRef.current = new Chart(canvas, {
       type: "pie",
@@ -384,7 +393,7 @@ export function PieChart({
           {
             data,
             backgroundColor: colors,
-            borderWidth: 4,
+            borderWidth: Math.max(1, Math.round(4 * s)),
             borderColor: "#ffffff",
           },
         ],
@@ -394,10 +403,10 @@ export function PieChart({
         maintainAspectRatio: false,
         layout: {
           padding: {
-            top: 90,
-            right: 90,
-            bottom: 90,
-            left: 90 + extraPaddingLeft,
+            top: Math.round(90 * s),
+            right: Math.round(90 * s),
+            bottom: Math.round(90 * s),
+            left: Math.round((90 + extraPaddingLeft) * s),
           },
         },
         interaction: {
@@ -412,10 +421,15 @@ export function PieChart({
             if (opts && opts.length > 0) {
               const native = event.native as MouseEvent;
               const rect = canvas.getBoundingClientRect();
+              // rect gives visual (CSS-scaled) dimensions; canvas.offsetWidth is the
+              // logical layout size (1080px space). Dividing by cssScale converts the
+              // click position into logical coordinates so the picker appears in the
+              // correct spot regardless of the CSS transform scale applied by HomeClient.
+              const cssScale = rect.width / canvas.offsetWidth;
               setPicker({
                 label,
-                x: native.clientX - rect.left,
-                y: native.clientY - rect.top,
+                x: (native.clientX - rect.left) / cssScale,
+                y: (native.clientY - rect.top) / cssScale,
               });
             }
           }

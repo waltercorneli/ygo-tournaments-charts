@@ -2,7 +2,7 @@ export function TeamInfo({ isDark = false }: { isDark?: boolean }) {
   return (
     <div className="flex flex-col gap-2 h-full">
       <h2
-        className={`text-2xl font-bold ${isDark ? "text-white" : "text-gray-900"}`}
+        className={`text-[0.55rem] font-bold ${isDark ? "text-white" : "text-gray-900"}`}
       >
         YGO FROSINONE
       </h2>
@@ -27,7 +27,7 @@ export function TeamInfo({ isDark = false }: { isDark?: boolean }) {
               >
                 Discord
               </span>
-              <span className="text-base font-semibold truncate">
+              <span className="text-[0.55rem] font-semibold truncate">
                 https://discord.gg/8AQy9EfgCM
               </span>
             </div>
@@ -66,7 +66,7 @@ export function TeamInfo({ isDark = false }: { isDark?: boolean }) {
               >
                 Instagram
               </span>
-              <span className="text-base font-semibold truncate">
+              <span className="text-[0.55rem] font-semibold truncate">
                 ygo.frosinone
               </span>
             </div>
@@ -87,7 +87,7 @@ export function TeamInfo({ isDark = false }: { isDark?: boolean }) {
               >
                 WhatsApp
               </span>
-              <span className="text-base font-semibold truncate">
+              <span className="text-[0.55rem] font-semibold truncate">
                 https://tinyurl.com/ygofrosinone
               </span>
             </div>

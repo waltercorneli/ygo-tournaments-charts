@@ -33,7 +33,7 @@ export function PlayersTop({ players, isDark = false }: PlayersTopProps) {
   return (
     <div className="flex flex-col gap-2 h-full">
       <h2
-        className={`text-2xl font-bold ${isDark ? "text-white" : "text-gray-900"}`}
+        className={`text-[0.55rem] font-bold ${isDark ? "text-white" : "text-gray-900"}`}
       >
         CLASSIFICA
       </h2>
@@ -49,31 +49,31 @@ export function PlayersTop({ players, isDark = false }: PlayersTopProps) {
         >
           {ordered.map(({ player, origIndex }, i) => (
             <Fragment key={i}>
-              <span className="text-2xl leading-none">
+              <span className="text-[0.55rem] leading-none">
                 {POSITIONS[origIndex] ?? "🎖️"}
               </span>
               <span
-                className={`text-3xl font-semibold ${isDark ? "text-gray-300" : "text-gray-600"}`}
+                className={`text-[0.65rem] font-semibold ${isDark ? "text-gray-300" : "text-gray-600"}`}
               >
                 {origIndex + 1}°
               </span>
               <span
-                className={`text-3xl ${isDark ? "text-gray-500" : "text-gray-400"}`}
+                className={`text-[0.65rem] ${isDark ? "text-gray-500" : "text-gray-400"}`}
               >
                 |
               </span>
               <span
-                className={`font-semibold text-3xl truncate ${isDark ? "text-white" : "text-gray-900"}`}
+                className={`font-semibold text-[0.65rem] truncate ${isDark ? "text-white" : "text-gray-900"}`}
               >
                 {player.name.trim() || "—"}
               </span>
               <span
-                className={`text-3xl ${isDark ? "text-gray-500" : "text-gray-400"}`}
+                className={`text-[0.65rem] ${isDark ? "text-gray-500" : "text-gray-400"}`}
               >
                 |
               </span>
               <span
-                className={`text-3xl truncate ${isDark ? "text-gray-400" : "text-gray-500"}`}
+                className={`text-[0.65rem] truncate ${isDark ? "text-gray-400" : "text-gray-500"}`}
               >
                 {player.deck.trim() || "—"}
               </span>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { toPng } from "html-to-image";
 import { PlayerChart } from "./PlayerChart";
 import { PlayersTop } from "./PlayersTop";
@@ -14,6 +14,8 @@ import { DecksBarChart } from "./DecksBarChart";
 import { useDecksInfos, DeckEntry } from "../hooks/useDecksInfos";
 import { usePlayersInfos } from "../hooks/usePlayersInfos";
 import { useTournamentInfos } from "../hooks/useTournamentInfos";
+
+const EXPORT_SIZE = 1080;
 
 export function HomeClient() {
   const playersInfos = usePlayersInfos(4);
@@ -69,9 +71,22 @@ export function HomeClient() {
   };
 
   const exportRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [scale, setScale] = useState(1);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(([entry]) => {
+      setScale(entry.contentRect.width / EXPORT_SIZE);
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   const exportPng = async () => {
     if (!exportRef.current) return;
+    // Inner div is 1080×1080 in layout; pixelRatio 3 → 3240×3240 output
     const dataUrl = await toPng(exportRef.current, { pixelRatio: 3 });
     const link = document.createElement("a");
     link.download = `${tournamentData.name || "torneo"}.png`;
@@ -148,50 +163,67 @@ export function HomeClient() {
           </button>
         </div>
 
-        {/* Measured outer container */}
+        {/* Outer responsive wrapper — sizes the visible area */}
         <div
-          ref={exportRef}
-          className={`relative w-full aspect-square rounded-xl overflow-hidden ${isDark ? "bg-gray-900" : "bg-white"}`}
+          ref={containerRef}
+          className="relative w-full aspect-square overflow-hidden rounded-xl"
         >
-          {/* faded background */}
-          {bgUrl && (
-            <img
-              src={bgUrl}
-              alt=""
-              aria-hidden
-              className="pointer-events-none absolute inset-0 h-full w-full object-cover select-none"
-              style={{ opacity: bgOpacity / 100 }}
-            />
-          )}
+          {/* Inner div fixed at EXPORT_SIZE × EXPORT_SIZE, then CSS-scaled to fit.
+              Layout size stays 1080px so html-to-image captures exactly 1080×1080.
+              Chart.js always renders at 1080px → fonts/padding stay proportional. */}
+          <div
+            ref={exportRef}
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              width: EXPORT_SIZE,
+              height: EXPORT_SIZE,
+              transform: `scale(${scale})`,
+              transformOrigin: "top left",
+            }}
+            className={`rounded-xl overflow-hidden ${isDark ? "bg-gray-900" : "bg-white"}`}
+          >
+            {/* faded background */}
+            {bgUrl && (
+              <img
+                src={bgUrl}
+                alt=""
+                aria-hidden
+                className="pointer-events-none absolute inset-0 h-full w-full object-cover select-none"
+                style={{ opacity: bgOpacity / 100 }}
+              />
+            )}
 
-          {/* foreground content */}
-          <div className="relative h-full flex flex-col gap-6 p-8">
-            <TournamentInfo data={tournamentData} isDark={isDark} />
-            <div className="flex-1 min-h-0 relative">
-              <div className="h-full">
-                <PieChart
-                  {...chartData}
-                  imageSearchOverrides={imageSearchOverrides}
-                  isDark={isDark}
-                  showLabels={!showSideChart}
-                  extraPaddingLeft={showSideChart ? 380 : 0}
-                />
-              </div>
-              {showSideChart && (
-                <div className="absolute top-0 left-0 w-1/4">
-                  <DecksBarChart {...chartData} isDark={isDark} />
+            {/* foreground content */}
+            <div className="relative h-full flex flex-col gap-6 p-8">
+              <TournamentInfo data={tournamentData} isDark={isDark} />
+              <div className="flex-1 min-h-0 relative">
+                <div className="h-full">
+                  <PieChart
+                    {...chartData}
+                    imageSearchOverrides={imageSearchOverrides}
+                    isDark={isDark}
+                    showLabels={!showSideChart}
+                    extraPaddingLeft={showSideChart ? 380 : 0}
+                  />
                 </div>
-              )}
-            </div>
-            <div className="flex gap-4 items-stretch w-[80%] mx-auto min-h-[15%] p-8">
-              <div className="flex-[3] min-w-0">
-                <PlayersTop players={playersInfos.players} isDark={isDark} />
+                {showSideChart && (
+                  <div className="absolute top-0 left-0 w-1/4">
+                    <DecksBarChart {...chartData} isDark={isDark} />
+                  </div>
+                )}
               </div>
-              {showTeamInfo && (
-                <div className="flex-[1] min-w-0">
-                  <TeamInfo isDark={isDark} />
+              <div className="flex gap-4 items-stretch w-[80%] mx-auto min-h-[15%] p-8">
+                <div className="flex-[3] min-w-0">
+                  <PlayersTop players={playersInfos.players} isDark={isDark} />
                 </div>
-              )}
+                {showTeamInfo && (
+                  <div className="flex-[1] min-w-0">
+                    <TeamInfo isDark={isDark} />
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>

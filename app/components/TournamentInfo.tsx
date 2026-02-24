@@ -17,14 +17,14 @@ export function TournamentInfo({ data, isDark = false }: Props) {
       <div className="flex-1 px-5 py-4 text-center">
         {data.name && (
           <h2
-            className={`text-[3.94rem] font-extrabold tracking-tight ${isDark ? "text-white" : "text-gray-900"}`}
+            className={`text-[1.3rem] font-extrabold tracking-tight ${isDark ? "text-white" : "text-gray-900"}`}
           >
             {data.name}
           </h2>
         )}
 
         <div
-          className={`mt-2 flex flex-wrap justify-center gap-x-3 gap-y-1 text-[1.575rem] ${isDark ? "text-gray-300" : "text-gray-600"}`}
+          className={`mt-2 flex flex-wrap justify-center gap-x-3 gap-y-1 text-[0.55rem] ${isDark ? "text-gray-300" : "text-gray-600"}`}
         >
           {[
             data.date &&
