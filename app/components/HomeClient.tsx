@@ -12,6 +12,7 @@ import { TournamentChart } from "./TournamentChart";
 import { TeamInfo } from "./TeamInfo";
 import { DecksBarChart } from "./DecksBarChart";
 import { AppFooter } from "./AppFooter";
+import { AppHeader } from "./AppHeader";
 import { useDecksInfos, DeckEntry } from "../hooks/useDecksInfos";
 import { usePlayersInfos } from "../hooks/usePlayersInfos";
 import { useTournamentInfos } from "../hooks/useTournamentInfos";
@@ -126,6 +127,7 @@ export function HomeClient() {
 
   return (
     <div className="flex flex-col w-full">
+      <AppHeader />
       <main className="flex h-screen w-full gap-8 p-8 overflow-hidden">
         {/* Left column */}
         <div className="flex flex-col gap-8 overflow-y-auto overflow-x-hidden">
