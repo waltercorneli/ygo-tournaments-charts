@@ -73,6 +73,7 @@ export function HomeClient() {
   const [darkPieStroke, setDarkPieStroke] = useState(true);
   const [showTeamInfo, setShowTeamInfo] = useState(true);
   const [showSideChart, setShowSideChart] = useState(false);
+  const [proportionalBars, setProportionalBars] = useState(false);
   const [progressivePctFont, setProgressivePctFont] = useState(true);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [exportStatus, setExportStatus] = useState<string | null>(null);
@@ -641,6 +642,18 @@ export function HomeClient() {
             </button>
             {showSideChart && (
               <button
+                onClick={() => setProportionalBars((p) => !p)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 text-xs rounded border w-full justify-center ${
+                  proportionalBars
+                    ? "border-blue-400 bg-blue-50 text-blue-700 hover:bg-blue-100"
+                    : "border-gray-300 bg-gray-100 hover:bg-gray-200"
+                }`}
+              >
+                {proportionalBars ? "📏 % sul totale" : "📏 Relativo al max"}
+              </button>
+            )}
+            {showSideChart && (
+              <button
                 onClick={() => setProgressivePctFont((p) => !p)}
                 className={`flex items-center gap-1.5 px-3 py-1.5 text-xs rounded border w-full justify-center ${
                   progressivePctFont
@@ -724,6 +737,7 @@ export function HomeClient() {
                           isDark={isDarkPanels}
                           sliceImages={deckImages}
                           panelOpacity={panelOpacity}
+                          proportional={proportionalBars}
                         />
                       </div>
                     )}
