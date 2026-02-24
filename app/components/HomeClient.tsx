@@ -225,7 +225,7 @@ export function HomeClient() {
                       imageSearchOverrides={imageSearchOverrides}
                       isDark={isDark}
                       showLabels={!showSideChart}
-                      extraPaddingLeft={showSideChart ? 380 : 0}
+                      extraPaddingLeft={showSideChart ? 850 : 0}
                     />
                   </div>
                   {showSideChart && (
