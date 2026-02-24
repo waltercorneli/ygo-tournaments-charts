@@ -623,15 +623,15 @@ export function PieChart({
         </div>
       )}
 
-      {/* ── Mobile bottom-sheet (portalled outside the scaled div) ───────
-          Always mounted so it is "permanently present below the chart".
-          Shows a hint when no slice is selected, full picker when one is. */}
+      {/* ── Mobile panel: fixed bottom, portalled to body.
+          z-[20] keeps it below the drawer (z-40) and backdrop (z-30)
+          so opening the menu naturally covers it. */}
       {isMobile &&
         typeof document !== "undefined" &&
         createPortal(
-          <div className="fixed bottom-0 left-0 right-0 z-[9999] border-t border-gray-200 bg-white shadow-2xl">
+          <div className="fixed bottom-0 left-0 right-0 z-[20] border-t border-gray-200 bg-white shadow-2xl">
             {picker && currentOptions(picker.label).length > 0 ? (
-              <div className="max-h-[55vh] overflow-y-auto">
+              <div className="max-h-[50vh] overflow-y-auto">
                 {renderPickerInner(picker.label)}
               </div>
             ) : (

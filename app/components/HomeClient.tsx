@@ -68,6 +68,17 @@ export function HomeClient() {
   const [showSideChart, setShowSideChart] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
+  // Lock body scroll while the mobile drawer is open so the page
+  // behind the backdrop cannot be scrolled by touch.
+  useEffect(() => {
+    document.body.style.overflow = isMenuOpen ? "hidden" : "";
+    document.body.style.touchAction = isMenuOpen ? "none" : "";
+    return () => {
+      document.body.style.overflow = "";
+      document.body.style.touchAction = "";
+    };
+  }, [isMenuOpen]);
+
   const handleBgChange = (url: string | null, opacity: number) => {
     setBgUrl(url);
     setBgOpacity(opacity);
@@ -209,7 +220,7 @@ export function HomeClient() {
         </div>
 
         {/* Chart preview */}
-        <div className="flex-1 min-w-0 flex flex-col gap-8">
+        <div className="flex-1 min-w-0 flex flex-col gap-4 md:gap-8">
           <div className="flex-1 min-h-0 flex items-center justify-center">
             <div
               ref={containerRef}
