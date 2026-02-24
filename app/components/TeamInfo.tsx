@@ -1,8 +1,14 @@
-export function TeamInfo({ isDark = false }: { isDark?: boolean }) {
+export function TeamInfo({
+  isDark = false,
+  isDarkTitle = isDark,
+}: {
+  isDark?: boolean;
+  isDarkTitle?: boolean;
+}) {
   return (
     <div className="flex flex-col gap-2 h-full">
       <h2
-        className={`text-[0.875rem] font-bold ${isDark ? "text-white" : "text-gray-900"}`}
+        className={`text-[0.875rem] font-bold ${isDarkTitle ? "text-white" : "text-gray-900"}`}
       >
         YGO FROSINONE
       </h2>

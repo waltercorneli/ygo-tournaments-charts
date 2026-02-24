@@ -68,6 +68,7 @@ export function HomeClient() {
   );
   const [bgOpacity, setBgOpacity] = useState(15);
   const [isDark, setIsDark] = useState(true);
+  const [isDarkPanels, setIsDarkPanels] = useState(true);
   const [darkPieStroke, setDarkPieStroke] = useState(true);
   const [showTeamInfo, setShowTeamInfo] = useState(true);
   const [showSideChart, setShowSideChart] = useState(false);
@@ -585,6 +586,12 @@ export function HomeClient() {
               {isDark ? "☀️ Modalità chiara" : "🌙 Modalità notte"}
             </button>
             <button
+              onClick={() => setIsDarkPanels((p) => !p)}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded border border-gray-300 bg-gray-100 hover:bg-gray-200 w-full justify-center"
+            >
+              {isDarkPanels ? "☀️ Specchietti chiari" : "🌙 Specchietti scuri"}
+            </button>
+            <button
               onClick={() => setDarkPieStroke((p) => !p)}
               className={`flex items-center gap-1.5 px-3 py-1.5 text-xs rounded border w-full justify-center ${
                 darkPieStroke
@@ -696,7 +703,7 @@ export function HomeClient() {
                       <div className="absolute top-0 left-0 w-1/4">
                         <DecksBarChart
                           {...chartData}
-                          isDark={isDark}
+                          isDark={isDarkPanels}
                           sliceImages={deckImages}
                         />
                       </div>
@@ -706,12 +713,13 @@ export function HomeClient() {
                     <div className="flex-[6] min-w-0">
                       <PlayersTop
                         players={playersInfos.players}
-                        isDark={isDark}
+                        isDark={isDarkPanels}
+                        isDarkTitle={isDark}
                       />
                     </div>
                     {showTeamInfo && (
                       <div className="flex-[1] min-w-0">
-                        <TeamInfo isDark={isDark} />
+                        <TeamInfo isDark={isDarkPanels} isDarkTitle={isDark} />
                       </div>
                     )}
                   </div>

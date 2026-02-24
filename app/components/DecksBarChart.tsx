@@ -17,7 +17,9 @@ export function DecksBarChart({
   if (total === 0) return null;
 
   return (
-    <div className="flex flex-col justify-start gap-3 h-full px-2 py-2 backdrop-blur-sm">
+    <div
+      className={`flex flex-col justify-start gap-3 h-full px-2 py-2 backdrop-blur-sm rounded border ${isDark ? "border-gray-600/70 bg-gray-800/60" : "border-gray-200/70 bg-gray-50/60"}`}
+    >
       {labels.map((label, i) => {
         const barWidth = max > 0 ? (data[i] / max) * 100 : 0;
         const imgUrl = sliceImages[label];
@@ -33,7 +35,12 @@ export function DecksBarChart({
               <span
                 className={`text-[0.9rem] flex-shrink-0 ${isDark ? "text-gray-300" : "text-gray-500"}`}
               >
-                {data[i]}
+                {data[i]}{" "}
+                <span
+                  className={`text-[0.75rem] ${isDark ? "text-gray-500" : "text-gray-400"}`}
+                >
+                  / {total}
+                </span>
               </span>
             </div>
             {/* Track */}

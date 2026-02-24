@@ -13,9 +13,14 @@ const TROPHY_COLORS = [
 interface PlayersTopProps {
   players: PlayerEntry[];
   isDark?: boolean;
+  isDarkTitle?: boolean;
 }
 
-export function PlayersTop({ players, isDark = false }: PlayersTopProps) {
+export function PlayersTop({
+  players,
+  isDark = false,
+  isDarkTitle = isDark,
+}: PlayersTopProps) {
   const filled = players.filter((p) => p.name.trim() !== "");
 
   if (filled.length === 0) return null;
@@ -33,7 +38,7 @@ export function PlayersTop({ players, isDark = false }: PlayersTopProps) {
   return (
     <div className="flex flex-col gap-2 h-full">
       <h2
-        className={`text-[0.875rem] font-bold ${isDark ? "text-white" : "text-gray-900"}`}
+        className={`text-[0.875rem] font-bold ${isDarkTitle ? "text-white" : "text-gray-900"}`}
       >
         CLASSIFICA
       </h2>
