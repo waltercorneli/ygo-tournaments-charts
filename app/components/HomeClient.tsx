@@ -66,6 +66,7 @@ export function HomeClient() {
   const [isDark, setIsDark] = useState(true);
   const [showTeamInfo, setShowTeamInfo] = useState(true);
   const [showSideChart, setShowSideChart] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const handleBgChange = (url: string | null, opacity: number) => {
     setBgUrl(url);
@@ -127,10 +128,32 @@ export function HomeClient() {
 
   return (
     <div className="flex flex-col w-full">
-      <AppHeader />
-      <main className="flex h-screen w-full gap-8 p-8 overflow-hidden">
-        {/* Left column */}
-        <div className="flex flex-col gap-8 overflow-y-auto overflow-x-hidden">
+      <AppHeader
+        onMenuToggle={() => setIsMenuOpen((p) => !p)}
+        isMenuOpen={isMenuOpen}
+      />
+
+      {/* Mobile backdrop */}
+      {isMenuOpen && (
+        <div
+          className="md:hidden fixed inset-0 z-30 bg-black/50"
+          onClick={() => setIsMenuOpen(false)}
+        />
+      )}
+
+      <main className="flex h-screen w-full gap-4 p-4 md:gap-8 md:p-8 overflow-hidden">
+        {/* Left column — drawer on mobile, static on desktop */}
+        <div
+          className={`
+            fixed inset-y-0 left-0 z-40 w-72 bg-white shadow-2xl
+            flex flex-col gap-8 overflow-y-auto overflow-x-hidden p-4
+            transition-transform duration-300
+            ${isMenuOpen ? "translate-x-0" : "-translate-x-full"}
+            md:static md:inset-y-auto md:left-auto md:z-auto md:w-auto
+            md:shadow-none md:translate-x-0 md:bg-transparent md:p-0
+            md:transition-none
+          `}
+        >
           <PlayerChart {...playersInfos} />
 
           <DecksChart

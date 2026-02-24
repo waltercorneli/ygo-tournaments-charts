@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Chart, ArcElement, Tooltip, Legend, PieController } from "chart.js";
 import type { Plugin } from "chart.js";
 import { DecksChartData } from "../hooks/useDecksInfos";
@@ -72,6 +73,16 @@ export function PieChart({
   );
   const fileInputRef = useRef<HTMLInputElement>(null);
   const uploadLabelRef = useRef<string | null>(null);
+
+  // Detect small screens (< 768 px, i.e. below the Tailwind "md" breakpoint)
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 767px)");
+    setIsMobile(mq.matches);
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
 
   // Options to show in the picker for a given label
   const currentOptions = (label: string): string[] => [
@@ -467,6 +478,130 @@ export function PieChart({
     setPicker(null);
   };
 
+  // ── Shared picker inner UI (desktop floating + mobile sheet) ──────────
+  const renderPickerInner = (label: string) => (
+    <>
+      {/* Header */}
+      <div className="flex items-center justify-between gap-4 border-b border-gray-100 px-3 py-2">
+        <span className="text-xs font-semibold text-gray-600">{label}</span>
+        <button
+          onClick={() => setPicker(null)}
+          className="flex h-5 w-5 items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700"
+          title="Chiudi"
+        >
+          ✕
+        </button>
+      </div>
+
+      {/* Thumbnails row with prev/next arrows */}
+      <div className="flex items-center gap-1 px-2 pt-2">
+        <button
+          onClick={() =>
+            fetchPage(label, (pickerPages[label]?.offset ?? 0) - 6)
+          }
+          disabled={
+            !pickerPages[label]?.offset || pickerPages[label]?.loading
+          }
+          className="flex h-8 w-6 flex-shrink-0 items-center justify-center rounded text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700 disabled:opacity-25"
+          title="Precedenti"
+        >
+          ◀
+        </button>
+
+        <div className="flex flex-1 flex-wrap justify-center gap-2">
+          {pickerPages[label]?.loading ? (
+            <span className="py-6 text-xs text-gray-400">Caricamento…</span>
+          ) : (
+            currentOptions(label).map((url, i) => (
+              <button
+                key={url}
+                title={`Opzione ${i + 1}`}
+                onClick={() => handleSelect(label, url)}
+                className={`h-16 w-16 overflow-hidden rounded-lg border-2 transition-transform hover:scale-110 ${
+                  selectedImages[label] === url
+                    ? "border-blue-500"
+                    : "border-gray-200 hover:border-gray-400"
+                }`}
+              >
+                <img
+                  src={url}
+                  alt={`opzione ${i + 1}`}
+                  className="h-full w-full object-cover"
+                />
+              </button>
+            ))
+          )}
+        </div>
+
+        <button
+          onClick={() =>
+            fetchPage(label, (pickerPages[label]?.offset ?? 0) + 6)
+          }
+          disabled={
+            !pickerPages[label]?.hasMore || pickerPages[label]?.loading
+          }
+          className="flex h-8 w-6 flex-shrink-0 items-center justify-center rounded text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700 disabled:opacity-25"
+          title="Successivi"
+        >
+          ▶
+        </button>
+      </div>
+
+      {/* Upload custom image */}
+      <div className="px-3 pb-2 pt-1">
+        <button
+          onClick={() => {
+            uploadLabelRef.current = label;
+            fileInputRef.current?.click();
+          }}
+          className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-gray-300 py-1.5 text-xs text-gray-500 transition-colors hover:border-blue-400 hover:text-blue-500"
+        >
+          ＋ Carica immagine personalizzata
+        </button>
+      </div>
+
+      {/* Scale */}
+      <div className="flex items-center gap-2 border-t border-gray-100 px-3 py-2">
+        <span title="Scala" className="select-none text-base">
+          🔍
+        </span>
+        <input
+          type="range"
+          min={0.3}
+          max={4}
+          step={0.05}
+          value={imageSettings[label]?.scale ?? 1}
+          onChange={(e) =>
+            updateSettings(label, { scale: parseFloat(e.target.value) })
+          }
+          className="flex-1 accent-blue-500"
+        />
+        <span className="w-8 text-right text-xs text-gray-500">
+          {Math.round((imageSettings[label]?.scale ?? 1) * 100)}%
+        </span>
+      </div>
+
+      {/* Position pad */}
+      <div className="flex items-center gap-3 border-t border-gray-100 px-3 py-2">
+        <span title="Posizione" className="select-none text-base">
+          ✥
+        </span>
+        <DragPad
+          offsetX={imageSettings[label]?.offsetX ?? 0}
+          offsetY={imageSettings[label]?.offsetY ?? 0}
+          onChange={(x, y) => updateSettings(label, { offsetX: x, offsetY: y })}
+        />
+        <button
+          onClick={() => updateSettings(label, { offsetX: 0, offsetY: 0 })}
+          className="text-sm text-gray-400 hover:text-gray-700"
+          title="Reset posizione"
+        >
+          ↺
+        </button>
+      </div>
+    </>
+  );
+
   return (
     <div className="relative h-full">
       <div className="absolute inset-2">
@@ -482,150 +617,35 @@ export function PieChart({
         onChange={handleFileUpload}
       />
 
-      {picker && currentOptions(picker.label).length > 0 && (
+      {/* ── Desktop floating picker (shown only on md+) ───────────────── */}
+      {!isMobile && picker && currentOptions(picker.label).length > 0 && (
         <div
           className="absolute z-50 w-80 rounded-xl border border-gray-200 bg-white/95 shadow-2xl backdrop-blur-sm"
           style={{ left: picker.x + 14, top: picker.y - 44 }}
         >
-          {/* Header */}
-          <div className="flex items-center justify-between gap-4 border-b border-gray-100 px-3 py-2">
-            <span className="text-xs font-semibold text-gray-600">
-              {picker.label}
-            </span>
-            <button
-              onClick={() => setPicker(null)}
-              className="flex h-5 w-5 items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700"
-              title="Chiudi"
-            >
-              ✕
-            </button>
-          </div>
-
-          {/* Thumbnails row with prev/next arrows */}
-          <div className="flex items-center gap-1 px-2 pt-2">
-            {/* Prev */}
-            <button
-              onClick={() =>
-                fetchPage(
-                  picker.label,
-                  (pickerPages[picker.label]?.offset ?? 0) - 6,
-                )
-              }
-              disabled={
-                !pickerPages[picker.label]?.offset ||
-                pickerPages[picker.label]?.loading
-              }
-              className="flex h-8 w-6 flex-shrink-0 items-center justify-center rounded text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700 disabled:opacity-25"
-              title="Precedenti"
-            >
-              ◀
-            </button>
-
-            {/* Thumbnails */}
-            <div className="flex flex-1 flex-wrap justify-center gap-2">
-              {pickerPages[picker.label]?.loading ? (
-                <span className="py-6 text-xs text-gray-400">Caricamento…</span>
-              ) : (
-                currentOptions(picker.label).map((url, i) => (
-                  <button
-                    key={url}
-                    title={`Opzione ${i + 1}`}
-                    onClick={() => handleSelect(picker.label, url)}
-                    className={`h-16 w-16 overflow-hidden rounded-lg border-2 transition-transform hover:scale-110 ${
-                      selectedImages[picker.label] === url
-                        ? "border-blue-500"
-                        : "border-gray-200 hover:border-gray-400"
-                    }`}
-                  >
-                    <img
-                      src={url}
-                      alt={`opzione ${i + 1}`}
-                      className="h-full w-full object-cover"
-                    />
-                  </button>
-                ))
-              )}
-            </div>
-
-            {/* Next */}
-            <button
-              onClick={() =>
-                fetchPage(
-                  picker.label,
-                  (pickerPages[picker.label]?.offset ?? 0) + 6,
-                )
-              }
-              disabled={
-                !pickerPages[picker.label]?.hasMore ||
-                pickerPages[picker.label]?.loading
-              }
-              className="flex h-8 w-6 flex-shrink-0 items-center justify-center rounded text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700 disabled:opacity-25"
-              title="Successivi"
-            >
-              ▶
-            </button>
-          </div>
-
-          {/* Upload custom image */}
-          <div className="px-3 pb-2 pt-1">
-            <button
-              onClick={() => {
-                uploadLabelRef.current = picker.label;
-                fileInputRef.current?.click();
-              }}
-              className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-gray-300 py-1.5 text-xs text-gray-500 transition-colors hover:border-blue-400 hover:text-blue-500"
-            >
-              ＋ Carica immagine personalizzata
-            </button>
-          </div>
-
-          {/* Scale */}
-          <div className="flex items-center gap-2 border-t border-gray-100 px-3 py-2">
-            <span title="Scala" className="select-none text-base">
-              🔍
-            </span>
-            <input
-              type="range"
-              min={0.3}
-              max={4}
-              step={0.05}
-              value={imageSettings[picker.label]?.scale ?? 1}
-              onChange={(e) =>
-                updateSettings(picker.label, {
-                  scale: parseFloat(e.target.value),
-                })
-              }
-              className="flex-1 accent-blue-500"
-            />
-            <span className="w-8 text-right text-xs text-gray-500">
-              {Math.round((imageSettings[picker.label]?.scale ?? 1) * 100)}%
-            </span>
-          </div>
-
-          {/* Position pad */}
-          <div className="flex items-center gap-3 border-t border-gray-100 px-3 py-2">
-            <span title="Posizione" className="select-none text-base">
-              ✥
-            </span>
-            <DragPad
-              offsetX={imageSettings[picker.label]?.offsetX ?? 0}
-              offsetY={imageSettings[picker.label]?.offsetY ?? 0}
-              onChange={(x, y) =>
-                updateSettings(picker.label, { offsetX: x, offsetY: y })
-              }
-            />
-            <button
-              onClick={() =>
-                updateSettings(picker.label, { offsetX: 0, offsetY: 0 })
-              }
-              className="text-sm text-gray-400 hover:text-gray-700"
-              title="Reset posizione"
-            >
-              ↺
-            </button>
-          </div>
+          {renderPickerInner(picker.label)}
         </div>
       )}
+
+      {/* ── Mobile bottom-sheet (portalled outside the scaled div) ───────
+          Always mounted so it is "permanently present below the chart".
+          Shows a hint when no slice is selected, full picker when one is. */}
+      {isMobile &&
+        typeof document !== "undefined" &&
+        createPortal(
+          <div className="fixed bottom-0 left-0 right-0 z-[9999] border-t border-gray-200 bg-white shadow-2xl">
+            {picker && currentOptions(picker.label).length > 0 ? (
+              <div className="max-h-[55vh] overflow-y-auto">
+                {renderPickerInner(picker.label)}
+              </div>
+            ) : (
+              <p className="px-4 py-3 text-center text-xs text-gray-400">
+                Tocca una fetta del grafico per selezionare l&apos;immagine
+              </p>
+            )}
+          </div>,
+          document.body,
+        )}
     </div>
   );
 }

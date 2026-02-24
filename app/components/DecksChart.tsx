@@ -20,8 +20,8 @@ export function DecksChart({
   return (
     <div className="shrink-0 flex flex-col gap-2 p-3">
       <h1 className="text-2xl font-bold mb-4">Decks List</h1>
-      {/* Column headers */}
-      <div className="flex items-center gap-2 px-0.5">
+      {/* Column headers — hidden on mobile, shown on desktop */}
+      <div className="hidden md:flex items-center gap-2 px-0.5">
         <span className="w-14 shrink-0" />
         <div className="flex flex-1 items-center gap-1">
           <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
@@ -62,39 +62,70 @@ export function DecksChart({
 
       <div className="flex flex-col gap-2 max-h-[480px] overflow-y-auto pr-1">
         {decks.map((deck, index) => (
-          <div key={index} className="flex items-center gap-2">
-            <label className="text-xs w-14 shrink-0">Deck {index + 1}</label>
-            <input
-              type="text"
-              value={deck.name}
-              onChange={(e) => onChange(index, "name", e.target.value)}
-              placeholder="Deck Name (vuoto = OTHER)"
-              title="Nome mostrato nel grafico"
-              className="flex-1 px-2.5 py-1.5 text-xs border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-300"
-            />
-            <input
-              type="text"
-              value={deck.imageSearch ?? ""}
-              onChange={(e) => onChange(index, "imageSearch", e.target.value)}
-              placeholder="Deck Image (opz.)"
-              title="Termine usato per cercare l'artwork. Lascia vuoto per usare il Deck Name."
-              className="w-28 px-2.5 py-1.5 text-xs border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-300"
-            />
-            <input
-              type="number"
-              min={1}
-              value={deck.qty}
-              onChange={(e) => onChange(index, "qty", e.target.value)}
-              placeholder="Qtà"
-              className="w-14 px-2 py-1.5 text-xs border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-purple-300"
-            />
-            <button
-              onClick={() => onRemove(index)}
-              title="Rimuovi"
-              className="px-2.5 py-1 rounded border border-red-300 bg-red-50 text-red-700 font-bold cursor-pointer hover:bg-red-100"
-            >
-              −
-            </button>
+          <div
+            key={index}
+            className="flex flex-col gap-1 md:flex-row md:items-center md:gap-2"
+          >
+            {/* Row 1 (mobile) / single row (desktop): label + name + remove */}
+            <div className="flex items-center gap-2">
+              <label className="text-xs shrink-0 w-14">Deck {index + 1}</label>
+              <input
+                type="text"
+                value={deck.name}
+                onChange={(e) => onChange(index, "name", e.target.value)}
+                placeholder="Deck Name (vuoto = OTHER)"
+                title="Nome mostrato nel grafico"
+                className="flex-1 min-w-0 px-2.5 py-1.5 text-xs border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-300"
+              />
+              {/* Remove button: visible on mobile in row 1, hidden on desktop */}
+              <button
+                onClick={() => onRemove(index)}
+                title="Rimuovi"
+                className="md:hidden px-2.5 py-1 rounded border border-red-300 bg-red-50 text-red-700 font-bold cursor-pointer hover:bg-red-100 shrink-0"
+              >
+                −
+              </button>
+            </div>
+
+            {/* Row 2 (mobile) / continues on desktop: image search + qty stepper + remove */}
+            <div className="flex items-center gap-2 pl-16 md:pl-0 md:contents">
+              <input
+                type="text"
+                value={deck.imageSearch ?? ""}
+                onChange={(e) => onChange(index, "imageSearch", e.target.value)}
+                placeholder="Deck Image (opz.)"
+                title="Termine usato per cercare l'artwork. Lascia vuoto per usare il Deck Name."
+                className="flex-1 min-w-0 px-2.5 py-1.5 text-xs border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-300 md:w-28 md:flex-none"
+              />
+              {/* Qty stepper */}
+              <div className="flex items-center border border-gray-300 rounded overflow-hidden shrink-0">
+                <button
+                  onClick={() =>
+                    onChange(index, "qty", String(Math.max(1, deck.qty - 1)))
+                  }
+                  className="px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 border-r border-gray-300"
+                >
+                  −
+                </button>
+                <span className="px-2.5 py-1 text-xs min-w-[2rem] text-center select-none">
+                  {deck.qty}
+                </span>
+                <button
+                  onClick={() => onChange(index, "qty", String(deck.qty + 1))}
+                  className="px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 border-l border-gray-300"
+                >
+                  +
+                </button>
+              </div>
+              {/* Remove button: hidden on mobile (shown in row 1), visible on desktop */}
+              <button
+                onClick={() => onRemove(index)}
+                title="Rimuovi"
+                className="hidden md:block px-2.5 py-1 rounded border border-red-300 bg-red-50 text-red-700 font-bold cursor-pointer hover:bg-red-100 shrink-0"
+              >
+                −
+              </button>
+            </div>
           </div>
         ))}
       </div>

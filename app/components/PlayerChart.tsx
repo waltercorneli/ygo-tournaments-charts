@@ -25,26 +25,35 @@ export function PlayerChart({
       <h1 className="text-2xl font-bold mb-4">Player Chart</h1>
       <div className="flex flex-col gap-2">
         {players.map((player, index) => (
-          <div key={index} className="flex items-center gap-2">
-            <label className="text-sm shrink-0 w-14">Top {index + 1}</label>
-            <input
-              type="text"
-              value={player.name}
-              onChange={(e) => onChange(index, "name", e.target.value)}
-              placeholder={`Player ${index + 1}`}
-              className="flex-1 px-3 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
-            />
-            <input
-              type="text"
-              value={player.deck}
-              onChange={(e) => onChange(index, "deck", e.target.value)}
-              placeholder="Deck"
-              className="flex-1 px-3 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-purple-300"
-            />
+          <div
+            key={index}
+            className="grid grid-cols-[auto_1fr_auto] gap-x-2 gap-y-1 md:flex md:items-center md:gap-2"
+          >
+            <label className="text-sm self-center shrink-0 md:w-14">
+              Top {index + 1}
+            </label>
+            {/* On mobile: stacked inside the middle grid cell.
+                On desktop: md:contents makes these directly flow in the flex row. */}
+            <div className="flex flex-col gap-1 md:contents">
+              <input
+                type="text"
+                value={player.name}
+                onChange={(e) => onChange(index, "name", e.target.value)}
+                placeholder={`Player ${index + 1}`}
+                className="w-full px-3 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 md:flex-1"
+              />
+              <input
+                type="text"
+                value={player.deck}
+                onChange={(e) => onChange(index, "deck", e.target.value)}
+                placeholder="Deck"
+                className="w-full px-3 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-purple-300 md:flex-1"
+              />
+            </div>
             <button
               onClick={() => onRemove(index)}
               title="Rimuovi player"
-              className="px-3 py-1 rounded border border-red-300 bg-red-50 text-red-700 font-bold cursor-pointer hover:bg-red-100"
+              className="self-center px-3 py-1 rounded border border-red-300 bg-red-50 text-red-700 font-bold cursor-pointer hover:bg-red-100"
             >
               −
             </button>
