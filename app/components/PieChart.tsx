@@ -681,15 +681,27 @@ export function PieChart({
       </div>
 
       {/* Position pad */}
-      <div className="flex items-center gap-3 border-t border-gray-100 px-3 py-2">
+      <div className="flex items-center gap-3 border-t border-gray-100 px-3 py-2 justify-center">
         <span title="Posizione" className="select-none text-base">
           ✥
         </span>
-        <DragPad
-          offsetX={imageSettings[label]?.offsetX ?? 0}
-          offsetY={imageSettings[label]?.offsetY ?? 0}
-          onChange={(x, y) => updateSettings(label, { offsetX: x, offsetY: y })}
-        />
+        {isMobile ? (
+          <ArrowPad
+            offsetX={imageSettings[label]?.offsetX ?? 0}
+            offsetY={imageSettings[label]?.offsetY ?? 0}
+            onChange={(x, y) =>
+              updateSettings(label, { offsetX: x, offsetY: y })
+            }
+          />
+        ) : (
+          <DragPad
+            offsetX={imageSettings[label]?.offsetX ?? 0}
+            offsetY={imageSettings[label]?.offsetY ?? 0}
+            onChange={(x, y) =>
+              updateSettings(label, { offsetX: x, offsetY: y })
+            }
+          />
+        )}
         <button
           onClick={() => updateSettings(label, { offsetX: 0, offsetY: 0 })}
           className="text-sm text-gray-400 hover:text-gray-700"
@@ -745,6 +757,70 @@ export function PieChart({
           </div>,
           document.body,
         )}
+    </div>
+  );
+}
+
+// ── Mobile arrow pad for image offset ─────────────────────────────────────
+const ARROW_STEP = 20;
+const ARROW_MAX_OFFSET = 400;
+
+function ArrowPad({
+  offsetX,
+  offsetY,
+  onChange,
+}: {
+  offsetX: number;
+  offsetY: number;
+  onChange: (x: number, y: number) => void;
+}) {
+  const clamp = (v: number) =>
+    Math.max(-ARROW_MAX_OFFSET, Math.min(ARROW_MAX_OFFSET, v));
+
+  const move = (dx: number, dy: number) =>
+    onChange(clamp(offsetX + dx), clamp(offsetY + dy));
+
+  const btnCls =
+    "flex h-10 w-10 items-center justify-center rounded-lg border border-gray-200 bg-gray-50 text-lg text-gray-700 active:bg-gray-200 select-none";
+
+  return (
+    <div className="grid grid-cols-3 gap-1">
+      {/* row 1 */}
+      <span />
+      <button
+        className={btnCls}
+        onPointerDown={() => move(0, -ARROW_STEP)}
+        title="Su"
+      >
+        ▲
+      </button>
+      <span />
+      {/* row 2 */}
+      <button
+        className={btnCls}
+        onPointerDown={() => move(-ARROW_STEP, 0)}
+        title="Sinistra"
+      >
+        ◀
+      </button>
+      <span />
+      <button
+        className={btnCls}
+        onPointerDown={() => move(ARROW_STEP, 0)}
+        title="Destra"
+      >
+        ▶
+      </button>
+      {/* row 3 */}
+      <span />
+      <button
+        className={btnCls}
+        onPointerDown={() => move(0, ARROW_STEP)}
+        title="Giù"
+      >
+        ▼
+      </button>
+      <span />
     </div>
   );
 }
