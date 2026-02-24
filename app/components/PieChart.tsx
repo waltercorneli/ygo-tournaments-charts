@@ -334,7 +334,12 @@ export function PieChart({
           const isRight = cos >= 0;
           const horizLen = Math.round(36 * lS);
           const x2 = x1 + (isRight ? horizLen : -horizLen);
-          const y2 = y1;
+          // Clamp y so labels never exceed the top/bottom canvas edges
+          const labelMargin = Math.round(20 * lS);
+          const y2 = Math.max(
+            labelMargin,
+            Math.min(chart.height - labelMargin, y1),
+          );
 
           // Leader line: centroid → knee → horizontal tick
           ctx.save();
