@@ -178,6 +178,7 @@ export function HomeClient() {
 
       // Walk up the DOM to find the nearest ancestor that clips via
       // overflow:hidden + border-radius (e.g. the rounded-full logo wrapper).
+      // Use borderTopLeftRadius (more reliable than the shorthand borderRadius).
       const findClipAncestor = (
         node: HTMLElement,
       ): { r: DOMRect; radius: number } | null => {
@@ -185,14 +186,40 @@ export function HomeClient() {
         while (cur && cur !== el) {
           const cs = getComputedStyle(cur);
           if (cs.overflow === "hidden" || cs.overflow === "clip") {
-            const br = parseFloat(cs.borderRadius);
+            const br = parseFloat(cs.borderTopLeftRadius);
             if (br > 0) {
-              return { r: cur.getBoundingClientRect(), radius: br };
+              const rect = cur.getBoundingClientRect();
+              // Clamp radius to half the smaller dimension (matches browser behaviour)
+              const maxR = Math.min(rect.width, rect.height) / 2;
+              return { r: rect, radius: Math.min(br, maxR) };
             }
           }
           cur = cur.parentElement;
         }
         return null;
+      };
+
+      // Polyfill for ctx.roundRect (not available on older WebKit).
+      const roundRectPath = (
+        c: CanvasRenderingContext2D,
+        x: number,
+        y: number,
+        w: number,
+        h: number,
+        r: number,
+      ) => {
+        const rr = Math.min(r, w / 2, h / 2);
+        c.beginPath();
+        c.moveTo(x + rr, y);
+        c.lineTo(x + w - rr, y);
+        c.arcTo(x + w, y, x + w, y + rr, rr);
+        c.lineTo(x + w, y + h - rr);
+        c.arcTo(x + w, y + h, x + w - rr, y + h, rr);
+        c.lineTo(x + rr, y + h);
+        c.arcTo(x, y + h, x, y + h - rr, rr);
+        c.lineTo(x, y + rr);
+        c.arcTo(x, y, x + rr, y, rr);
+        c.closePath();
       };
 
       try {
@@ -307,8 +334,7 @@ export function HomeClient() {
               const cw = layer.clipW * PR;
               const ch = layer.clipH * PR;
               const cr = layer.clipR * PR;
-              ctx.beginPath();
-              ctx.roundRect(cx, cy, cw, ch, cr);
+              roundRectPath(ctx, cx, cy, cw, ch, cr);
               ctx.clip();
             }
 
@@ -353,14 +379,13 @@ export function HomeClient() {
         setExportStatus("✅ Download in corso…");
         const finalDataUrl = finalCanvas.toDataURL("image/png");
 
-        // Safari iOS: link.click() works.
-        // Chrome iOS: link.click() is silently blocked — use Web Share API.
-        const isSafari = /^((?!chrome|android).)*safari/i.test(
-          navigator.userAgent,
-        );
         const fileName = `${tournamentData.name || "torneo"}.png`;
+        // Chrome iOS UA contains "CriOS"; Safari iOS does not.
+        // Safari iOS: link.click() works fine.
+        // Chrome iOS: link.click() is silently ignored — use Web Share API instead.
+        const isChromeIOS = /CriOS/.test(navigator.userAgent);
         if (
-          !isSafari &&
+          isChromeIOS &&
           typeof navigator.share === "function" &&
           navigator.canShare?.({
             files: [new File([], fileName, { type: "image/png" })],
