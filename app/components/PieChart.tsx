@@ -22,11 +22,15 @@ export function PieChart({
   isDark = false,
   showLabels = true,
   extraPaddingLeft = 0,
+  snapshotRef,
 }: DecksChartData & {
   imageSearchOverrides?: Record<string, string>;
   isDark?: boolean;
   showLabels?: boolean;
   extraPaddingLeft?: number;
+  /** Call this to get a canvas data URL that is guaranteed to have all
+   *  artwork images fully painted (waits for loading if needed). */
+  snapshotRef?: React.RefObject<(() => Promise<string>) | null>;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const chartRef = useRef<Chart | null>(null);
@@ -174,6 +178,44 @@ export function PieChart({
       ...prev,
       [label]: { ...(prev[label] ?? DEFAULT_SETTINGS), ...patch },
     }));
+
+  // Keep snapshotRef up to date so HomeClient can call it at export time.
+  // The function waits until every selectedImage has been drawn into imagesRef
+  // (i.e. img.onload has fired and chart.update() was called), then returns
+  // the canvas data URL. This fixes iOS first-load blank canvas.
+  useEffect(() => {
+    if (!snapshotRef) return;
+    snapshotRef.current = async (): Promise<string> => {
+      const canvas = canvasRef.current;
+      if (!canvas) return "";
+      // Wait for every selected image to appear in imagesRef
+      const pending = Object.entries(selectedImages).filter(
+        ([label, url]) => imagesRef.current[label]?.url !== url,
+      );
+      if (pending.length > 0) {
+        await Promise.all(
+          pending.map(
+            ([, url]) =>
+              new Promise<void>((resolve) => {
+                const check = () => {
+                  const found = Object.values(imagesRef.current).some(
+                    (e) => e.url === url,
+                  );
+                  if (found) resolve();
+                  else setTimeout(check, 50);
+                };
+                check();
+              }),
+          ),
+        );
+      }
+      // Force a final repaint and wait for it to land on the canvas
+      chartRef.current?.update();
+      await new Promise<void>((r) => requestAnimationFrame(() => r()));
+      await new Promise<void>((r) => requestAnimationFrame(() => r()));
+      return canvas.toDataURL("image/png");
+    };
+  });
 
   // Redraw chart whenever settings change
   useEffect(() => {

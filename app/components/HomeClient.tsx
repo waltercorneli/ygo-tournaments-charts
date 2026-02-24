@@ -67,6 +67,11 @@ export function HomeClient() {
   const [showTeamInfo, setShowTeamInfo] = useState(true);
   const [showSideChart, setShowSideChart] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [exportStatus, setExportStatus] = useState<string | null>(null);
+
+  // Ref filled by PieChart — returns a canvas data URL only after all artwork
+  // images are fully loaded and painted (fixes iOS first-load blank canvas).
+  const chartSnapshotRef = useRef<(() => Promise<string>) | null>(null);
 
   // Lock body scroll while the mobile drawer is open so the page
   // behind the backdrop cannot be scrolled by touch.
@@ -102,11 +107,9 @@ export function HomeClient() {
     if (!exportRef.current) return;
     const el = exportRef.current;
     const prevTransform = el.style.transform;
-    el.style.transform = "scale(1)";
 
     // Helper: fetch any URL → base64 data URL.
-    // iOS Safari blocks <img> and <canvas> inside foreignObject unless the src
-    // is already an inline data URL, so we must pre-convert everything.
+    // iOS Safari blocks <img> inside foreignObject unless src is already a data URL.
     const srcToDataUrl = async (src: string): Promise<string | null> => {
       try {
         const abs = src.startsWith("http")
@@ -125,64 +128,83 @@ export function HomeClient() {
       }
     };
 
-    // 1. Replace every <canvas> with a snapshot <img> so html-to-image never
-    //    touches a canvas element (avoids tainted-canvas / foreignObject issues).
+    setExportStatus("⏳ Attesa caricamento grafico…");
+    el.style.transform = "scale(1)";
+
+    // 1. Replace every <canvas> with a snapshot <img>. Use chartSnapshotRef so
+    //    PieChart confirms all artwork images are loaded before calling toDataURL.
     type CanvasReplacement = {
       placeholder: HTMLImageElement;
       canvas: HTMLCanvasElement;
     };
     const canvasReplacements: CanvasReplacement[] = [];
-    el.querySelectorAll("canvas").forEach((canvas) => {
-      const c = canvas as HTMLCanvasElement;
-      const img = document.createElement("img");
-      img.src = c.toDataURL("image/png");
-      img.style.cssText = c.style.cssText;
-      img.style.width = `${c.offsetWidth}px`;
-      img.style.height = `${c.offsetHeight}px`;
-      img.className = c.className;
-      c.parentElement?.replaceChild(img, c);
-      canvasReplacements.push({ placeholder: img, canvas: c });
-    });
-
-    // 2. Pre-convert every <img> src to a data URL.
-    type ImgRestoration = { img: HTMLImageElement; originalSrc: string };
-    const imgRestorations: ImgRestoration[] = [];
-    await Promise.all(
-      Array.from(el.querySelectorAll("img")).map(async (imgEl) => {
-        const img = imgEl as HTMLImageElement;
-        const src = img.getAttribute("src") ?? "";
-        if (!src || src.startsWith("data:")) return; // already inline, skip
-        const dataUrl = await srcToDataUrl(src);
-        if (dataUrl) {
-          imgRestorations.push({ img, originalSrc: src });
-          img.src = dataUrl;
-        }
-      }),
-    );
 
     try {
-      // pixelRatio 3 → 3240×3240 output
-      // skipFonts: true avoids a Firefox crash on undefined font rules.
+      await Promise.all(
+        Array.from(el.querySelectorAll("canvas")).map(async (canvas) => {
+          const c = canvas as HTMLCanvasElement;
+          const dataUrl = chartSnapshotRef.current
+            ? await chartSnapshotRef.current()
+            : c.toDataURL("image/png");
+          setExportStatus("🖼️ Snapshot grafico acquisito…");
+          const img = document.createElement("img");
+          img.src = dataUrl;
+          img.style.cssText = c.style.cssText;
+          img.style.width = `${c.offsetWidth}px`;
+          img.style.height = `${c.offsetHeight}px`;
+          img.className = c.className;
+          c.parentElement?.replaceChild(img, c);
+          canvasReplacements.push({ placeholder: img, canvas: c });
+        }),
+      );
+
+      // 2. Pre-convert every <img> src to a data URL (fixes logos on iOS).
+      type ImgRestoration = { img: HTMLImageElement; originalSrc: string };
+      const imgRestorations: ImgRestoration[] = [];
+      const imgEls = Array.from(el.querySelectorAll("img"));
+      setExportStatus(`🔄 Conversione immagini (0 / ${imgEls.length})…`);
+      let converted = 0;
+      await Promise.all(
+        imgEls.map(async (imgEl) => {
+          const img = imgEl as HTMLImageElement;
+          const src = img.getAttribute("src") ?? "";
+          converted++;
+          setExportStatus(
+            `🔄 Conversione immagini (${converted} / ${imgEls.length})…`,
+          );
+          if (!src || src.startsWith("data:")) return;
+          const dataUrl = await srcToDataUrl(src);
+          if (dataUrl) {
+            imgRestorations.push({ img, originalSrc: src });
+            img.src = dataUrl;
+          }
+        }),
+      );
+
+      setExportStatus("✏️ Generazione PNG…");
       const dataUrl = await toPng(el, {
         pixelRatio: 3,
         width: EXPORT_SIZE,
         height: EXPORT_SIZE,
         skipFonts: true,
       });
+
+      setExportStatus("✅ Download in corso…");
       const link = document.createElement("a");
       link.download = `${tournamentData.name || "torneo"}.png`;
       link.href = dataUrl;
       link.click();
-    } finally {
-      // Restore canvas elements
-      canvasReplacements.forEach(({ placeholder, canvas }) => {
-        placeholder.parentElement?.replaceChild(canvas, placeholder);
-      });
+
       // Restore img src values
       imgRestorations.forEach(({ img, originalSrc }) => {
         img.src = originalSrc;
       });
+    } finally {
+      canvasReplacements.forEach(({ placeholder, canvas }) => {
+        placeholder.parentElement?.replaceChild(canvas, placeholder);
+      });
       el.style.transform = prevTransform;
+      setTimeout(() => setExportStatus(null), 1500);
     }
   };
 
@@ -272,7 +294,8 @@ export function HomeClient() {
             </button>
             <button
               onClick={exportPng}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded border border-gray-300 bg-gray-100 hover:bg-gray-200 w-full justify-center"
+              disabled={exportStatus !== null}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded border border-gray-300 bg-gray-100 hover:bg-gray-200 w-full justify-center disabled:opacity-50 disabled:cursor-not-allowed"
             >
               ⬇ Esporta PNG
             </button>
@@ -328,6 +351,7 @@ export function HomeClient() {
                         isDark={isDark}
                         showLabels={!showSideChart}
                         extraPaddingLeft={showSideChart ? 850 : 0}
+                        snapshotRef={chartSnapshotRef}
                       />
                     </div>
                     {showSideChart && (
@@ -358,6 +382,16 @@ export function HomeClient() {
 
       {/* Footer — visible only on scroll */}
       <AppFooter />
+
+      {/* Export progress overlay */}
+      {exportStatus !== null && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="flex flex-col items-center gap-3 rounded-2xl border border-gray-200 bg-white px-8 py-6 shadow-2xl">
+            <div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-300 border-t-blue-500" />
+            <p className="text-sm font-medium text-gray-700">{exportStatus}</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
