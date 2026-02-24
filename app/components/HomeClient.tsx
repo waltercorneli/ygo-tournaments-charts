@@ -72,8 +72,8 @@ export function HomeClient() {
   const [panelOpacity, setPanelOpacity] = useState(60);
   const [darkPieStroke, setDarkPieStroke] = useState(true);
   const [showTeamInfo, setShowTeamInfo] = useState(true);
-  const [showSideChart, setShowSideChart] = useState(false);
-  const [proportionalBars, setProportionalBars] = useState(false);
+  const [showSideChart, setShowSideChart] = useState(true);
+  const [proportionalBars, setProportionalBars] = useState(true);
   const [progressivePctFont, setProgressivePctFont] = useState(true);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [exportStatus, setExportStatus] = useState<string | null>(null);
@@ -582,6 +582,17 @@ export function HomeClient() {
 
           <div className="flex flex-col gap-2 p-3">
             <button
+              onClick={() => setShowSideChart((p) => !p)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs rounded border w-full justify-center ${
+                showSideChart
+                  ? "border-blue-400 bg-blue-50 text-blue-700 hover:bg-blue-100"
+                  : "border-gray-300 bg-gray-100 hover:bg-gray-200"
+              }`}
+            >
+              {showSideChart ? "📊 Template 2" : "🏷️ Template 1"}
+            </button>
+            <div className="border-t border-gray-200 mt-1 mb-1" />
+            <button
               onClick={() => setIsDark((p) => !p)}
               className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded border border-gray-300 bg-gray-100 hover:bg-gray-200 w-full justify-center"
             >
@@ -629,16 +640,6 @@ export function HomeClient() {
               }`}
             >
               {showTeamInfo ? "🏠 Nascondi Team Info" : "🏠 Mostra Team Info"}
-            </button>
-            <button
-              onClick={() => setShowSideChart((p) => !p)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs rounded border w-full justify-center ${
-                showSideChart
-                  ? "border-blue-400 bg-blue-50 text-blue-700 hover:bg-blue-100"
-                  : "border-gray-300 bg-gray-100 hover:bg-gray-200"
-              }`}
-            >
-              {showSideChart ? "📊 Specchietto deck" : "🏷️ Label fette"}
             </button>
             {showSideChart && (
               <button
