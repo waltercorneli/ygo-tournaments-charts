@@ -32,7 +32,7 @@ export function TournamentChart({ data, setField, setLogoUrl }: Props) {
   };
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-2 p-3">
       {/* Header row */}
       <div className="flex items-center gap-1">
         <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">

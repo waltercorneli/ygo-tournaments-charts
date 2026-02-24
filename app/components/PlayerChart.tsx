@@ -21,7 +21,7 @@ export function PlayerChart({
   onClear,
 }: PlayerChartProps) {
   return (
-    <div className="max-w-xl">
+    <div className="max-w-xl p-3">
       <h1 className="text-2xl font-bold mb-4">Player Chart</h1>
       <div className="flex flex-col gap-2">
         {players.map((player, index) => (

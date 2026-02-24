@@ -122,6 +122,7 @@ export function HomeClient() {
 
   return (
     <main className="flex h-screen w-full gap-8 p-8 overflow-hidden">
+      {/* Left column */}
       <div className="flex flex-col gap-8 overflow-y-auto">
         <PlayerChart {...playersInfos} />
 
@@ -140,44 +141,8 @@ export function HomeClient() {
         />
       </div>
 
+      {/* Center column — chart preview */}
       <div className="flex-1 min-w-0 flex flex-col gap-8">
-        <BackgroundImage onImageChange={handleBgChange} />
-
-        <div className="flex items-center justify-end gap-3">
-          <button
-            onClick={() => setIsDark((p) => !p)}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded border border-gray-300 bg-gray-100 hover:bg-gray-200"
-          >
-            {isDark ? "☀️ Modalità chiara" : "🌙 Modalità notte"}
-          </button>
-          <button
-            onClick={() => setShowTeamInfo((p) => !p)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs rounded border ${
-              showTeamInfo
-                ? "border-blue-400 bg-blue-50 text-blue-700 hover:bg-blue-100"
-                : "border-gray-300 bg-gray-100 hover:bg-gray-200"
-            }`}
-          >
-            {showTeamInfo ? "🏠 Nascondi Team Info" : "🏠 Mostra Team Info"}
-          </button>
-          <button
-            onClick={() => setShowSideChart((p) => !p)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs rounded border ${
-              showSideChart
-                ? "border-blue-400 bg-blue-50 text-blue-700 hover:bg-blue-100"
-                : "border-gray-300 bg-gray-100 hover:bg-gray-200"
-            }`}
-          >
-            {showSideChart ? "📊 Specchietto deck" : "🏷️ Label fette"}
-          </button>
-          <button
-            onClick={exportPng}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded border border-gray-300 bg-gray-100 hover:bg-gray-200"
-          >
-            ⬇ Esporta PNG
-          </button>
-        </div>
-
         {/* Outer responsive wrapper — sizes the visible area */}
         <div className="flex-1 min-h-0 flex items-center justify-center">
           <div
@@ -250,6 +215,46 @@ export function HomeClient() {
               </div>
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Right column — controls */}
+      <div className="flex flex-col gap-4 overflow-y-auto w-120 shrink-0">
+        <BackgroundImage onImageChange={handleBgChange} />
+
+        <div className="flex flex-col gap-2 p-3">
+          <button
+            onClick={() => setIsDark((p) => !p)}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded border border-gray-300 bg-gray-100 hover:bg-gray-200 w-full justify-center"
+          >
+            {isDark ? "☀️ Modalità chiara" : "🌙 Modalità notte"}
+          </button>
+          <button
+            onClick={() => setShowTeamInfo((p) => !p)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs rounded border w-full justify-center ${
+              showTeamInfo
+                ? "border-blue-400 bg-blue-50 text-blue-700 hover:bg-blue-100"
+                : "border-gray-300 bg-gray-100 hover:bg-gray-200"
+            }`}
+          >
+            {showTeamInfo ? "🏠 Nascondi Team Info" : "🏠 Mostra Team Info"}
+          </button>
+          <button
+            onClick={() => setShowSideChart((p) => !p)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs rounded border w-full justify-center ${
+              showSideChart
+                ? "border-blue-400 bg-blue-50 text-blue-700 hover:bg-blue-100"
+                : "border-gray-300 bg-gray-100 hover:bg-gray-200"
+            }`}
+          >
+            {showSideChart ? "📊 Specchietto deck" : "🏷️ Label fette"}
+          </button>
+          <button
+            onClick={exportPng}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded border border-gray-300 bg-gray-100 hover:bg-gray-200 w-full justify-center"
+          >
+            ⬇ Esporta PNG
+          </button>
         </div>
       </div>
     </main>
