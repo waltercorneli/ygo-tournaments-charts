@@ -163,12 +163,36 @@ export function HomeClient() {
         w: number;
         h: number;
         objectFit: string;
+        clipX?: number;
+        clipY?: number;
+        clipW?: number;
+        clipH?: number;
+        clipR?: number; // border-radius of the clipping ancestor, in CSS px
       };
       const layers: Layer[] = [];
       const hiddenEls: Array<{ el: HTMLElement; vis: string }> = [];
       const hideEl = (e: HTMLElement) => {
         hiddenEls.push({ el: e, vis: e.style.visibility });
         e.style.visibility = "hidden";
+      };
+
+      // Walk up the DOM to find the nearest ancestor that clips via
+      // overflow:hidden + border-radius (e.g. the rounded-full logo wrapper).
+      const findClipAncestor = (
+        node: HTMLElement,
+      ): { r: DOMRect; radius: number } | null => {
+        let cur = node.parentElement;
+        while (cur && cur !== el) {
+          const cs = getComputedStyle(cur);
+          if (cs.overflow === "hidden" || cs.overflow === "clip") {
+            const br = parseFloat(cs.borderRadius);
+            if (br > 0) {
+              return { r: cur.getBoundingClientRect(), radius: br };
+            }
+          }
+          cur = cur.parentElement;
+        }
+        return null;
       };
 
       try {
@@ -213,6 +237,7 @@ export function HomeClient() {
           if (!dataUrl) continue;
           const r = imgEl.getBoundingClientRect();
           if (r.width < 1 || r.height < 1) continue;
+          const clip = findClipAncestor(imgEl);
           layers.push({
             dataUrl,
             objectFit: getComputedStyle(imgEl).objectFit || "fill",
@@ -220,6 +245,15 @@ export function HomeClient() {
             y: r.top - elRect.top,
             w: r.width,
             h: r.height,
+            ...(clip
+              ? {
+                  clipX: clip.r.left - elRect.left,
+                  clipY: clip.r.top - elRect.top,
+                  clipW: clip.r.width,
+                  clipH: clip.r.height,
+                  clipR: clip.radius,
+                }
+              : {}),
           });
           hideEl(imgEl);
         }
@@ -258,6 +292,26 @@ export function HomeClient() {
             const dw = layer.w * PR;
             const dh = layer.h * PR;
 
+            ctx.save();
+
+            // Apply clip from ancestor overflow:hidden + border-radius (e.g. rounded logo)
+            if (
+              layer.clipX !== undefined &&
+              layer.clipY !== undefined &&
+              layer.clipW !== undefined &&
+              layer.clipH !== undefined &&
+              layer.clipR !== undefined
+            ) {
+              const cx = layer.clipX * PR;
+              const cy = layer.clipY * PR;
+              const cw = layer.clipW * PR;
+              const ch = layer.clipH * PR;
+              const cr = layer.clipR * PR;
+              ctx.beginPath();
+              ctx.roundRect(cx, cy, cw, ch, cr);
+              ctx.clip();
+            }
+
             if (layer.objectFit === "cover") {
               const scale = Math.max(
                 dw / img.naturalWidth,
@@ -289,6 +343,8 @@ export function HomeClient() {
             } else {
               ctx.drawImage(img, dx, dy, dw, dh);
             }
+
+            ctx.restore();
           } catch {
             /* skip any layer that fails to load */
           }
@@ -296,10 +352,34 @@ export function HomeClient() {
 
         setExportStatus("✅ Download in corso…");
         const finalDataUrl = finalCanvas.toDataURL("image/png");
-        const link = document.createElement("a");
-        link.download = `${tournamentData.name || "torneo"}.png`;
-        link.href = finalDataUrl;
-        link.click();
+
+        // Safari iOS: link.click() works.
+        // Chrome iOS: link.click() is silently blocked — use Web Share API.
+        const isSafari = /^((?!chrome|android).)*safari/i.test(
+          navigator.userAgent,
+        );
+        const fileName = `${tournamentData.name || "torneo"}.png`;
+        if (
+          !isSafari &&
+          typeof navigator.share === "function" &&
+          navigator.canShare?.({
+            files: [new File([], fileName, { type: "image/png" })],
+          })
+        ) {
+          const res2 = await fetch(finalDataUrl);
+          const blob = await res2.blob();
+          const file = new File([blob], fileName, { type: "image/png" });
+          try {
+            await navigator.share({ files: [file], title: fileName });
+          } catch (err) {
+            if (err instanceof Error && err.name !== "AbortError") throw err;
+          }
+        } else {
+          const link = document.createElement("a");
+          link.download = fileName;
+          link.href = finalDataUrl;
+          link.click();
+        }
       } finally {
         hiddenEls.forEach(({ el: e, vis }) => {
           e.style.visibility = vis;
