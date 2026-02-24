@@ -68,6 +68,9 @@ export function HomeClient() {
   const [showSideChart, setShowSideChart] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [exportStatus, setExportStatus] = useState<string | null>(null);
+  // iOS: show the generated image in a full-screen modal so the user can
+  // long-press to save it (window.open / link.click are unreliable on iOS).
+  const [iosImageUrl, setIosImageUrl] = useState<string | null>(null);
 
   // Ref filled by PieChart — returns a canvas data URL only after all artwork
   // images are fully loaded and painted (fixes iOS first-load blank canvas).
@@ -379,32 +382,11 @@ export function HomeClient() {
         setExportStatus("✅ Download in corso…");
         const finalDataUrl = finalCanvas.toDataURL("image/png");
 
-        const fileName = `${tournamentData.name || "torneo"}.png`;
-        // Chrome iOS UA contains "CriOS"; Safari iOS does not.
-        // Safari iOS: link.click() works fine.
-        // Chrome iOS: link.click() is silently ignored — use Web Share API instead.
-        const isChromeIOS = /CriOS/.test(navigator.userAgent);
-        if (
-          isChromeIOS &&
-          typeof navigator.share === "function" &&
-          navigator.canShare?.({
-            files: [new File([], fileName, { type: "image/png" })],
-          })
-        ) {
-          const res2 = await fetch(finalDataUrl);
-          const blob = await res2.blob();
-          const file = new File([blob], fileName, { type: "image/png" });
-          try {
-            await navigator.share({ files: [file], title: fileName });
-          } catch (err) {
-            if (err instanceof Error && err.name !== "AbortError") throw err;
-          }
-        } else {
-          const link = document.createElement("a");
-          link.download = fileName;
-          link.href = finalDataUrl;
-          link.click();
-        }
+        // Show the image in the in-page modal — works on every iOS browser.
+        // The user long-presses the image to save it.
+        setIosImageUrl(finalDataUrl);
+      } catch (err) {
+        throw err;
       } finally {
         hiddenEls.forEach(({ el: e, vis }) => {
           e.style.visibility = vis;
@@ -671,6 +653,31 @@ export function HomeClient() {
             <div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-300 border-t-blue-500" />
             <p className="text-sm font-medium text-gray-700">{exportStatus}</p>
           </div>
+        </div>
+      )}
+
+      {/* iOS save modal — long-press the image to save */}
+      {iosImageUrl !== null && (
+        <div
+          className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-black/90"
+          onClick={() => setIosImageUrl(null)}
+        >
+          <p className="mb-3 text-sm font-medium text-white select-none">
+            Tieni premuta l&apos;immagine per salvarla
+          </p>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={iosImageUrl}
+            alt="Export"
+            className="max-w-full max-h-[85vh] rounded-xl shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          />
+          <button
+            className="mt-4 rounded-full bg-white/20 px-5 py-2 text-sm text-white"
+            onClick={() => setIosImageUrl(null)}
+          >
+            Chiudi
+          </button>
         </div>
       )}
     </div>
