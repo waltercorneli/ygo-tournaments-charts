@@ -2,7 +2,7 @@ export function TeamInfo({ isDark = false }: { isDark?: boolean }) {
   return (
     <div className="flex flex-col gap-2 h-full">
       <h2
-        className={`text-[0.7rem] font-bold ${isDark ? "text-white" : "text-gray-900"}`}
+        className={`text-[0.875rem] font-bold ${isDark ? "text-white" : "text-gray-900"}`}
       >
         YGO FROSINONE
       </h2>

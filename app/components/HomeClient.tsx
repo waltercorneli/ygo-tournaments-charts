@@ -62,7 +62,7 @@ export function HomeClient() {
   const [bgUrl, setBgUrl] = useState<string | null>(null);
   const [bgOpacity, setBgOpacity] = useState(15);
   const [isDark, setIsDark] = useState(true);
-  const [showTeamInfo, setShowTeamInfo] = useState(false);
+  const [showTeamInfo, setShowTeamInfo] = useState(true);
   const [showSideChart, setShowSideChart] = useState(false);
 
   const handleBgChange = (url: string | null, opacity: number) => {
