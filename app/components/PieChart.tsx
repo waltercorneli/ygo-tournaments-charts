@@ -22,6 +22,7 @@ export function PieChart({
   isDark = false,
   darkStroke,
   showLabels = true,
+  showSlicePercentages = false,
   extraPaddingLeft = 0,
   snapshotRef,
 }: DecksChartData & {
@@ -31,6 +32,7 @@ export function PieChart({
    *  When omitted it falls back to `isDark`. */
   darkStroke?: boolean;
   showLabels?: boolean;
+  showSlicePercentages?: boolean;
   extraPaddingLeft?: number;
   /** Call this to get a canvas data URL that is guaranteed to have all
    *  artwork images fully painted (waits for loading if needed). */
@@ -49,6 +51,9 @@ export function PieChart({
 
   const showLabelsRef = useRef(showLabels);
   showLabelsRef.current = showLabels;
+
+  const showSlicePercentagesRef = useRef(showSlicePercentages);
+  showSlicePercentagesRef.current = showSlicePercentages;
 
   const extraPaddingLeftRef = useRef(extraPaddingLeft);
   extraPaddingLeftRef.current = extraPaddingLeft;
@@ -247,6 +252,15 @@ export function PieChart({
     }
   }, [showLabels]);
 
+  // Redraw chart when slice percentages visibility changes
+  useEffect(() => {
+    try {
+      chartRef.current?.update();
+    } catch {
+      // chart may be mid-rebuild, skip
+    }
+  }, [showSlicePercentages]);
+
   // Auto-select first image when options load
   useEffect(() => {
     setSelectedImages(() => {
@@ -345,6 +359,45 @@ export function PieChart({
           ctx.stroke();
           ctx.restore();
         });
+
+        // Percentage text inside slices (used when bar-chart labels are shown instead)
+        if (showSlicePercentagesRef.current) {
+          const tot = data.reduce((a, b) => a + b, 0);
+          const tS = chart.width / 1080;
+          meta.data.forEach((arcEl, i) => {
+            const arc = arcEl as ArcElement & {
+              x: number;
+              y: number;
+              startAngle: number;
+              endAngle: number;
+              outerRadius: number;
+            };
+            const value = data[i];
+            if (tot <= 0 || value / tot < 0.025) return; // skip tiny slices
+            const pct = ((value / tot) * 100).toFixed(1);
+            const midAngle = (arc.startAngle + arc.endAngle) / 2;
+            const cos = Math.cos(midAngle);
+            const sin = Math.sin(midAngle);
+            const r0 = arc.outerRadius;
+
+            // Place text centred exactly on the outer-arc midpoint
+            const tx = arc.x + cos * r0;
+            const ty = arc.y + sin * r0;
+
+            const fontSize = Math.max(12, Math.round(28 * tS));
+            ctx.save();
+            ctx.font = `bold ${fontSize}px system-ui, sans-serif`;
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.lineWidth = Math.max(2, 6 * tS);
+            ctx.strokeStyle = "rgba(255,255,255,0.95)";
+            ctx.lineJoin = "round";
+            ctx.strokeText(`${pct}%`, tx, ty);
+            ctx.fillStyle = "#000000";
+            ctx.fillText(`${pct}%`, tx, ty);
+            ctx.restore();
+          });
+        }
       },
     };
 

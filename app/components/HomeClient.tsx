@@ -668,6 +668,7 @@ export function HomeClient() {
                         isDark={isDark}
                         darkStroke={darkPieStroke}
                         showLabels={!showSideChart}
+                        showSlicePercentages={showSideChart}
                         extraPaddingLeft={showSideChart ? 850 : 0}
                         snapshotRef={chartSnapshotRef}
                       />

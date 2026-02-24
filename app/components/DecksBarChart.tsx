@@ -14,7 +14,6 @@ export function DecksBarChart({
   return (
     <div className="flex flex-col justify-start gap-3 h-full px-2 py-2 backdrop-blur-sm">
       {labels.map((label, i) => {
-        const pct = total > 0 ? ((data[i] / total) * 100).toFixed(1) : "0.0";
         const barWidth = max > 0 ? (data[i] / max) * 100 : 0;
         return (
           <div key={i} className="flex flex-col gap-0.5">
@@ -27,7 +26,7 @@ export function DecksBarChart({
               <span
                 className={`text-[0.9rem] flex-shrink-0 ${isDark ? "text-gray-300" : "text-gray-500"}`}
               >
-                {data[i]} ({pct}%)
+                {data[i]}
               </span>
             </div>
             <div
