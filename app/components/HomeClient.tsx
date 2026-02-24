@@ -215,7 +215,9 @@ export function HomeClient() {
       canvasOverlays.forEach(({ overlay, parent }) => {
         overlay.remove();
         // Restore hidden canvas
-        const canvas = parent.querySelector("canvas") as HTMLCanvasElement | null;
+        const canvas = parent.querySelector(
+          "canvas",
+        ) as HTMLCanvasElement | null;
         if (canvas) canvas.style.visibility = "";
       });
       setTimeout(() => setExportStatus(null), 1500);
