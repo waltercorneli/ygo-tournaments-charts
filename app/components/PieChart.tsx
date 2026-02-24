@@ -285,12 +285,12 @@ export function PieChart({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedImages]);
 
-  // Auto-select first image when options load
+  // Auto-select first image when options load — preserve existing user selections
   useEffect(() => {
-    setSelectedImages(() => {
-      const next: Record<string, string> = {};
+    setSelectedImages((prev) => {
+      const next: Record<string, string> = { ...prev };
       for (const [label, urls] of Object.entries(imageOptions)) {
-        if (urls.length > 0) next[label] = urls[0];
+        if (urls.length > 0 && !next[label]) next[label] = urls[0];
       }
       return next;
     });
