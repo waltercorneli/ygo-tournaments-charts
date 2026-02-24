@@ -26,6 +26,7 @@ export function PieChart({
   progressivePctFont = true,
   extraPaddingLeft = 0,
   onImagesChange,
+  onImageSettingsChange,
   snapshotRef,
 }: DecksChartData & {
   imageSearchOverrides?: Record<string, string>;
@@ -40,6 +41,8 @@ export function PieChart({
   extraPaddingLeft?: number;
   /** Called whenever the label→imageURL map changes (e.g. user picks a new artwork). */
   onImagesChange?: (images: Record<string, string>) => void;
+  /** Called whenever image settings (scale/offset) change. */
+  onImageSettingsChange?: (settings: Record<string, ImageSettings>) => void;
   /** Call this to get a canvas data URL that is guaranteed to have all
    *  artwork images fully painted (waits for loading if needed). */
   snapshotRef?: React.RefObject<(() => Promise<string>) | null>;
@@ -302,6 +305,12 @@ export function PieChart({
     onImagesChange?.(selectedImages);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedImages]);
+
+  // Notify parent whenever image settings change
+  useEffect(() => {
+    onImageSettingsChange?.(imageSettings);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [imageSettings]);
 
   // Auto-select first image when options load — preserve existing user selections
   useEffect(() => {
@@ -809,7 +818,7 @@ export function PieChart({
       {!isMobile && picker && currentOptions(picker.label).length > 0 && (
         <div
           ref={pickerPopupRef}
-          className="absolute z-50 w-80 rounded-xl border border-gray-200 bg-white/95 shadow-2xl backdrop-blur-sm"
+          className="absolute z-50 w-80 rounded-xl border border-gray-200 bg-white/65 shadow-2xl backdrop-blur-[2px]"
           style={{ left: picker.x, top: picker.y }}
         >
           {renderPickerInner(picker.label)}

@@ -62,6 +62,9 @@ export function HomeClient() {
   } = useTournamentInfos();
 
   const [deckImages, setDeckImages] = useState<Record<string, string>>({});
+  const [deckImageSettings, setDeckImageSettings] = useState<
+    Record<string, { scale: number; offsetX: number; offsetY: number }>
+  >({});
 
   const [bgUrl, setBgUrl] = useState<string | null>(
     "/images/plane-background.webp",
@@ -728,6 +731,7 @@ export function HomeClient() {
                         progressivePctFont={progressivePctFont}
                         extraPaddingLeft={showSideChart ? 850 : 0}
                         onImagesChange={setDeckImages}
+                        onImageSettingsChange={setDeckImageSettings}
                         snapshotRef={chartSnapshotRef}
                       />
                     </div>
@@ -750,6 +754,8 @@ export function HomeClient() {
                         isDark={isDarkPanels}
                         isDarkTitle={isDark}
                         panelOpacity={panelOpacity}
+                        sliceImages={deckImages}
+                        imageSettings={deckImageSettings}
                       />
                     </div>
                     {showTeamInfo && (
