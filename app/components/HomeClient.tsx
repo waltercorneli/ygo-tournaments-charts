@@ -109,7 +109,6 @@ export function HomeClient() {
     const prevTransform = el.style.transform;
 
     // Helper: fetch any URL → base64 data URL.
-    // iOS Safari blocks <img> inside foreignObject unless src is already a data URL.
     const srcToDataUrl = async (src: string): Promise<string | null> => {
       try {
         const abs = src.startsWith("http")
@@ -128,11 +127,190 @@ export function HomeClient() {
       }
     };
 
+    // Helper: load an Image from a src, resolve when ready.
+    const loadImg = (src: string): Promise<HTMLImageElement> =>
+      new Promise((resolve, reject) => {
+        const i = new Image();
+        i.onload = () => resolve(i);
+        i.onerror = reject;
+        i.src = src;
+      });
+
     setExportStatus("⏳ Attesa caricamento grafico…");
     el.style.transform = "scale(1)";
 
-    // 1. Replace every <canvas> with a snapshot <img>. Use chartSnapshotRef so
-    //    PieChart confirms all artwork images are loaded before calling toDataURL.
+    // iOS Safari/Chrome: WebKit does NOT render <img> inside SVG foreignObject
+    // (the mechanism html-to-image uses). Text, borders, bg-colors work fine —
+    // only <img> and <canvas> go blank. Fix: capture base layer (text only) via
+    // toPng with all images hidden, then composite images manually on a canvas.
+    const isIOS =
+      /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+      (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+
+    if (isIOS) {
+      // Wait two frames so layout has settled after the transform change.
+      await new Promise<void>((r) =>
+        requestAnimationFrame(() => requestAnimationFrame(() => r())),
+      );
+
+      const elRect = el.getBoundingClientRect();
+      const PR = 2; // 2× is enough for mobile and stays within WebKit canvas limits
+
+      type Layer = {
+        dataUrl: string;
+        x: number;
+        y: number;
+        w: number;
+        h: number;
+        objectFit: string;
+      };
+      const layers: Layer[] = [];
+      const hiddenEls: Array<{ el: HTMLElement; vis: string }> = [];
+      const hideEl = (e: HTMLElement) => {
+        hiddenEls.push({ el: e, vis: e.style.visibility });
+        e.style.visibility = "hidden";
+      };
+
+      try {
+        setExportStatus("🖼️ Snapshot grafico…");
+
+        // 1a. Canvas (PieChart)
+        for (const c of Array.from(
+          el.querySelectorAll("canvas"),
+        ) as HTMLCanvasElement[]) {
+          let dataUrl = "";
+          try {
+            dataUrl = chartSnapshotRef.current
+              ? await chartSnapshotRef.current()
+              : c.toDataURL("image/png");
+          } catch {
+            /* tainted — skip */
+          }
+          if (!dataUrl || dataUrl.length < 200) continue;
+          const r = c.getBoundingClientRect();
+          layers.push({
+            dataUrl,
+            objectFit: "fill",
+            x: r.left - elRect.left,
+            y: r.top - elRect.top,
+            w: r.width,
+            h: r.height,
+          });
+          hideEl(c);
+        }
+
+        setExportStatus("🔄 Conversione immagini…");
+
+        // 1b. All <img> elements
+        for (const imgEl of Array.from(
+          el.querySelectorAll("img"),
+        ) as HTMLImageElement[]) {
+          const src = imgEl.getAttribute("src") ?? "";
+          if (!src) continue;
+          const dataUrl = src.startsWith("data:")
+            ? src
+            : await srcToDataUrl(src);
+          if (!dataUrl) continue;
+          const r = imgEl.getBoundingClientRect();
+          if (r.width < 1 || r.height < 1) continue;
+          layers.push({
+            dataUrl,
+            objectFit: getComputedStyle(imgEl).objectFit || "fill",
+            x: r.left - elRect.left,
+            y: r.top - elRect.top,
+            w: r.width,
+            h: r.height,
+          });
+          hideEl(imgEl);
+        }
+
+        // 2. Capture the DOM (text, shapes, backgrounds) with all images hidden.
+        setExportStatus("✏️ Generazione base…");
+        const basePng = await toPng(el, {
+          pixelRatio: PR,
+          width: EXPORT_SIZE,
+          height: EXPORT_SIZE,
+          skipFonts: true,
+        });
+
+        // 3. Composite everything on a single canvas.
+        setExportStatus("🎨 Composizione immagine…");
+        const finalCanvas = document.createElement("canvas");
+        finalCanvas.width = EXPORT_SIZE * PR;
+        finalCanvas.height = EXPORT_SIZE * PR;
+        const ctx = finalCanvas.getContext("2d")!;
+
+        // Base layer (text, backgrounds)
+        ctx.drawImage(
+          await loadImg(basePng),
+          0,
+          0,
+          finalCanvas.width,
+          finalCanvas.height,
+        );
+
+        // Image layers in DOM order (preserves z-ordering of the original layout)
+        for (const layer of layers) {
+          try {
+            const img = await loadImg(layer.dataUrl);
+            const dx = layer.x * PR;
+            const dy = layer.y * PR;
+            const dw = layer.w * PR;
+            const dh = layer.h * PR;
+
+            if (layer.objectFit === "cover") {
+              const scale = Math.max(
+                dw / img.naturalWidth,
+                dh / img.naturalHeight,
+              );
+              const sw = dw / scale;
+              const sh = dh / scale;
+              const sx = (img.naturalWidth - sw) / 2;
+              const sy = (img.naturalHeight - sh) / 2;
+              ctx.drawImage(img, sx, sy, sw, sh, dx, dy, dw, dh);
+            } else if (layer.objectFit === "contain") {
+              const scale = Math.min(
+                dw / img.naturalWidth,
+                dh / img.naturalHeight,
+              );
+              const sw = img.naturalWidth * scale;
+              const sh = img.naturalHeight * scale;
+              ctx.drawImage(
+                img,
+                0,
+                0,
+                img.naturalWidth,
+                img.naturalHeight,
+                dx + (dw - sw) / 2,
+                dy + (dh - sh) / 2,
+                sw,
+                sh,
+              );
+            } else {
+              ctx.drawImage(img, dx, dy, dw, dh);
+            }
+          } catch {
+            /* skip any layer that fails to load */
+          }
+        }
+
+        setExportStatus("✅ Download in corso…");
+        const finalDataUrl = finalCanvas.toDataURL("image/png");
+        const link = document.createElement("a");
+        link.download = `${tournamentData.name || "torneo"}.png`;
+        link.href = finalDataUrl;
+        link.click();
+      } finally {
+        hiddenEls.forEach(({ el: e, vis }) => {
+          e.style.visibility = vis;
+        });
+        el.style.transform = prevTransform;
+        setTimeout(() => setExportStatus(null), 1500);
+      }
+      return;
+    }
+
+    // ── Desktop / non-iOS path (unchanged) ──────────────────────────────────
     type CanvasReplacement = {
       placeholder: HTMLImageElement;
       canvas: HTMLCanvasElement;
@@ -155,14 +333,12 @@ export function HomeClient() {
           img.style.width = `${c.offsetWidth}px`;
           img.style.height = `${c.offsetHeight}px`;
           img.className = c.className;
-          // Wait for the browser to fully decode the data URL before toPng runs
           await img.decode().catch(() => {});
           c.parentElement?.replaceChild(img, c);
           canvasReplacements.push({ placeholder: img, canvas: c });
         }),
       );
 
-      // 2. Pre-convert every <img> src to a data URL (fixes logos on iOS).
       const imgEls = Array.from(el.querySelectorAll("img"));
       setExportStatus(`🔄 Conversione immagini (0 / ${imgEls.length})…`);
       let converted = 0;
@@ -179,7 +355,6 @@ export function HomeClient() {
           if (dataUrl) {
             imgRestorations.push({ img, originalSrc: src });
             img.src = dataUrl;
-            // Wait for decode so toPng finds the image already painted
             await img.decode().catch(() => {});
           }
         }),
@@ -199,7 +374,6 @@ export function HomeClient() {
       link.href = dataUrl;
       link.click();
     } finally {
-      // Always restore img src values — even if toPng throws
       imgRestorations.forEach(({ img, originalSrc }) => {
         img.src = originalSrc;
       });
