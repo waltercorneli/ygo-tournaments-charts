@@ -338,6 +338,10 @@ export function HomeClient() {
               const ch = layer.clipH * PR;
               const cr = layer.clipR * PR;
               roundRectPath(ctx, cx, cy, cw, ch, cr);
+              // Fill with black first so no white bleeds through from the base layer.
+              ctx.fillStyle = "#000000";
+              ctx.fill();
+              roundRectPath(ctx, cx, cy, cw, ch, cr);
               ctx.clip();
             }
 
