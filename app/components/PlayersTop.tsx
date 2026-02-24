@@ -1,7 +1,7 @@
 import { Fragment } from "react";
 import { PlayerEntry } from "./PlayerChart";
 
-const POSITIONS = ["🥇", "🥈", "🥉", "🎖️"];
+const POSITIONS = ["🥇", "🥈", "🥉", "🥉"];
 
 const TROPHY_COLORS = [
   "bg-yellow-400 text-white", // 1° oro
@@ -33,7 +33,7 @@ export function PlayersTop({ players, isDark = false }: PlayersTopProps) {
   return (
     <div className="flex flex-col gap-2 h-full">
       <h2
-        className={`text-[0.7rem] font-bold ${isDark ? "text-white" : "text-gray-900"}`}
+        className={`text-[0.875rem] font-bold ${isDark ? "text-white" : "text-gray-900"}`}
       >
         CLASSIFICA
       </h2>
@@ -49,31 +49,31 @@ export function PlayersTop({ players, isDark = false }: PlayersTopProps) {
         >
           {ordered.map(({ player, origIndex }, i) => (
             <Fragment key={i}>
-              <span className="text-[0.75rem] leading-none">
+              <span className="text-[0.9375rem] leading-none">
                 {POSITIONS[origIndex] ?? "🎖️"}
               </span>
               <span
-                className={`text-[0.8rem] font-semibold ${isDark ? "text-gray-300" : "text-gray-600"}`}
+                className={`text-[1rem] font-semibold ${isDark ? "text-gray-300" : "text-gray-600"}`}
               >
                 {origIndex + 1}°
               </span>
               <span
-                className={`text-[0.8rem] ${isDark ? "text-gray-500" : "text-gray-400"}`}
+                className={`text-[1rem] ${isDark ? "text-gray-500" : "text-gray-400"}`}
               >
                 |
               </span>
               <span
-                className={`font-semibold text-[0.8rem] truncate ${isDark ? "text-white" : "text-gray-900"}`}
+                className={`font-semibold text-[1rem] truncate ${isDark ? "text-white" : "text-gray-900"}`}
               >
                 {player.name.trim() || "—"}
               </span>
               <span
-                className={`text-[0.8rem] ${isDark ? "text-gray-500" : "text-gray-400"}`}
+                className={`text-[1rem] ${isDark ? "text-gray-500" : "text-gray-400"}`}
               >
                 |
               </span>
               <span
-                className={`text-[0.8rem] truncate ${isDark ? "text-gray-400" : "text-gray-500"}`}
+                className={`text-[1rem] truncate ${isDark ? "text-gray-400" : "text-gray-500"}`}
               >
                 {player.deck.trim() || "—"}
               </span>
