@@ -13,18 +13,18 @@ export function TournamentInfo({ data, isDark = false }: Props) {
   if (!hasAny) return null;
 
   return (
-    <div className="flex items-center gap-4">
-      <div className="flex-1 px-5 py-4 text-center">
+    <div className="relative flex items-center">
+      <div className="w-full px-5 py-4 text-center">
         {data.name && (
           <h2
-            className={`text-[1.3rem] font-extrabold tracking-tight ${isDark ? "text-white" : "text-gray-900"}`}
+            className={`text-[1.8rem] font-extrabold tracking-tight ${isDark ? "text-white" : "text-gray-900"}`}
           >
             {data.name}
           </h2>
         )}
 
         <div
-          className={`mt-2 flex flex-wrap justify-center gap-x-3 gap-y-1 text-[0.55rem] ${isDark ? "text-gray-300" : "text-gray-600"}`}
+          className={`mt-2 flex flex-wrap justify-center gap-x-3 gap-y-1 text-[0.75rem] ${isDark ? "text-gray-300" : "text-gray-600"}`}
         >
           {[
             data.date &&
@@ -47,7 +47,7 @@ export function TournamentInfo({ data, isDark = false }: Props) {
       </div>
 
       {data.logoUrl && (
-        <div className="h-36 w-36 flex-shrink-0 overflow-hidden rounded-full border-4 border-white shadow-lg">
+        <div className="absolute right-0 top-1/2 -translate-y-1/2 h-[7.5rem] w-[7.5rem] flex-shrink-0 overflow-hidden rounded-full border-4 border-white shadow-lg">
           <img
             src={data.logoUrl}
             alt="Logo fumetteria"
