@@ -101,36 +101,68 @@ export function HomeClient() {
   const exportPng = async () => {
     if (!exportRef.current) return;
     const el = exportRef.current;
-    // Temporarily remove the CSS scale so html-to-image captures the element
-    // at its natural 1080×1080 layout size regardless of screen width.
-    // Without this, getBoundingClientRect() returns the scaled visual size,
-    // causing a mismatch between canvas dimensions and rendered content.
     const prevTransform = el.style.transform;
     el.style.transform = "scale(1)";
 
-    // iOS Safari blocks foreignObject-based canvas serialisation (used internally
-    // by html-to-image), so the chart canvas renders as a blank rectangle.
-    // Work-around: snapshot every <canvas> to a data URL, overlay a matching
-    // <img> on top of it for the duration of the export, then restore.
-    const canvases = Array.from(el.querySelectorAll("canvas"));
-    const snapshots = canvases.map((canvas) => {
-      const dataUrl = (canvas as HTMLCanvasElement).toDataURL("image/png");
+    // Helper: fetch any URL → base64 data URL.
+    // iOS Safari blocks <img> and <canvas> inside foreignObject unless the src
+    // is already an inline data URL, so we must pre-convert everything.
+    const srcToDataUrl = async (src: string): Promise<string | null> => {
+      try {
+        const abs = src.startsWith("http")
+          ? src
+          : `${window.location.origin}${src.startsWith("/") ? src : `/${src}`}`;
+        const res = await fetch(abs, { cache: "force-cache" });
+        const blob = await res.blob();
+        return await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(blob);
+        });
+      } catch {
+        return null;
+      }
+    };
+
+    // 1. Replace every <canvas> with a snapshot <img> so html-to-image never
+    //    touches a canvas element (avoids tainted-canvas / foreignObject issues).
+    type CanvasReplacement = {
+      placeholder: HTMLImageElement;
+      canvas: HTMLCanvasElement;
+    };
+    const canvasReplacements: CanvasReplacement[] = [];
+    el.querySelectorAll("canvas").forEach((canvas) => {
+      const c = canvas as HTMLCanvasElement;
       const img = document.createElement("img");
-      img.src = dataUrl;
-      img.style.position = "absolute";
-      img.style.inset = "0";
-      img.style.width = "100%";
-      img.style.height = "100%";
-      // Insert sibling so it occupies the same space as the canvas
-      canvas.parentElement?.appendChild(img);
-      (canvas as HTMLElement).style.opacity = "0";
-      return { canvas: canvas as HTMLElement, img };
+      img.src = c.toDataURL("image/png");
+      img.style.cssText = c.style.cssText;
+      img.style.width = `${c.offsetWidth}px`;
+      img.style.height = `${c.offsetHeight}px`;
+      img.className = c.className;
+      c.parentElement?.replaceChild(img, c);
+      canvasReplacements.push({ placeholder: img, canvas: c });
     });
+
+    // 2. Pre-convert every <img> src to a data URL.
+    type ImgRestoration = { img: HTMLImageElement; originalSrc: string };
+    const imgRestorations: ImgRestoration[] = [];
+    await Promise.all(
+      Array.from(el.querySelectorAll("img")).map(async (imgEl) => {
+        const img = imgEl as HTMLImageElement;
+        const src = img.getAttribute("src") ?? "";
+        if (!src || src.startsWith("data:")) return; // already inline, skip
+        const dataUrl = await srcToDataUrl(src);
+        if (dataUrl) {
+          imgRestorations.push({ img, originalSrc: src });
+          img.src = dataUrl;
+        }
+      }),
+    );
 
     try {
       // pixelRatio 3 → 3240×3240 output
-      // skipFonts: true prevents html-to-image from iterating CSS font rules,
-      // which crashes in Firefox because some rules expose `font` as undefined.
+      // skipFonts: true avoids a Firefox crash on undefined font rules.
       const dataUrl = await toPng(el, {
         pixelRatio: 3,
         width: EXPORT_SIZE,
@@ -142,10 +174,13 @@ export function HomeClient() {
       link.href = dataUrl;
       link.click();
     } finally {
-      // Restore canvas visibility and remove temporary img overlays
-      snapshots.forEach(({ canvas, img }) => {
-        canvas.style.opacity = "";
-        img.parentElement?.removeChild(img);
+      // Restore canvas elements
+      canvasReplacements.forEach(({ placeholder, canvas }) => {
+        placeholder.parentElement?.replaceChild(canvas, placeholder);
+      });
+      // Restore img src values
+      imgRestorations.forEach(({ img, originalSrc }) => {
+        img.src = originalSrc;
       });
       el.style.transform = prevTransform;
     }
