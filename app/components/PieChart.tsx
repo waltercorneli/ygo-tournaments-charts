@@ -20,12 +20,16 @@ export function PieChart({
   colors,
   imageSearchOverrides = {},
   isDark = false,
+  darkStroke,
   showLabels = true,
   extraPaddingLeft = 0,
   snapshotRef,
 }: DecksChartData & {
   imageSearchOverrides?: Record<string, string>;
   isDark?: boolean;
+  /** Controls slice border/stroke colour independently of the theme.
+   *  When omitted it falls back to `isDark`. */
+  darkStroke?: boolean;
   showLabels?: boolean;
   extraPaddingLeft?: number;
   /** Call this to get a canvas data URL that is guaranteed to have all
@@ -38,6 +42,10 @@ export function PieChart({
 
   const isDarkRef = useRef(isDark);
   isDarkRef.current = isDark;
+
+  const effectiveDarkStroke = darkStroke ?? isDark;
+  const darkStrokeRef = useRef(effectiveDarkStroke);
+  darkStrokeRef.current = effectiveDarkStroke;
 
   const showLabelsRef = useRef(showLabels);
   showLabelsRef.current = showLabels;
@@ -222,13 +230,13 @@ export function PieChart({
     chartRef.current?.update();
   }, [imageSettings]);
 
-  // Redraw chart when dark mode changes
+  // Redraw chart when dark mode or stroke mode changes
   useEffect(() => {
     if (!chartRef.current) return;
     const ds = chartRef.current.data.datasets[0] as { borderColor?: string };
-    ds.borderColor = isDark ? "#1f2937" : "#ffffff";
+    ds.borderColor = (darkStroke ?? isDark) ? "#1f2937" : "#ffffff";
     chartRef.current.update();
-  }, [isDark]);
+  }, [isDark, darkStroke]);
 
   // Redraw chart when labels visibility changes
   useEffect(() => {
@@ -327,7 +335,7 @@ export function PieChart({
             outerRadius: number;
           };
           ctx.save();
-          ctx.strokeStyle = isDarkRef.current ? "#1f2937" : "#ffffff";
+          ctx.strokeStyle = darkStrokeRef.current ? "#1f2937" : "#ffffff";
           ctx.lineWidth = Math.max(1, 4 * bS);
           ctx.lineJoin = "round";
           ctx.beginPath();
@@ -452,7 +460,7 @@ export function PieChart({
             data,
             backgroundColor: colors,
             borderWidth: Math.max(1, Math.round(4 * s)),
-            borderColor: "#ffffff",
+            borderColor: darkStrokeRef.current ? "#1f2937" : "#ffffff",
           },
         ],
       },

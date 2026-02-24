@@ -64,6 +64,7 @@ export function HomeClient() {
   const [bgUrl, setBgUrl] = useState<string | null>(null);
   const [bgOpacity, setBgOpacity] = useState(15);
   const [isDark, setIsDark] = useState(true);
+  const [darkPieStroke, setDarkPieStroke] = useState(true);
   const [showTeamInfo, setShowTeamInfo] = useState(true);
   const [showSideChart, setShowSideChart] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -579,6 +580,16 @@ export function HomeClient() {
               {isDark ? "☀️ Modalità chiara" : "🌙 Modalità notte"}
             </button>
             <button
+              onClick={() => setDarkPieStroke((p) => !p)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs rounded border w-full justify-center ${
+                darkPieStroke
+                  ? "border-gray-300 bg-gray-100 hover:bg-gray-200"
+                  : "border-yellow-400 bg-yellow-50 text-yellow-700 hover:bg-yellow-100"
+              }`}
+            >
+              {darkPieStroke ? "⬛ Stroke scuro" : "⬜ Stroke chiaro"}
+            </button>
+            <button
               onClick={() => setShowTeamInfo((p) => !p)}
               className={`flex items-center gap-1.5 px-3 py-1.5 text-xs rounded border w-full justify-center ${
                 showTeamInfo
@@ -655,6 +666,7 @@ export function HomeClient() {
                         {...chartData}
                         imageSearchOverrides={imageSearchOverrides}
                         isDark={isDark}
+                        darkStroke={darkPieStroke}
                         showLabels={!showSideChart}
                         extraPaddingLeft={showSideChart ? 850 : 0}
                         snapshotRef={chartSnapshotRef}
