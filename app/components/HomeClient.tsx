@@ -172,6 +172,10 @@ export function HomeClient() {
         clipH?: number;
         clipR?: number; // border-radius of the clipping ancestor, in CSS px
       };
+      // Background image (aria-hidden) is handled separately so it can be
+      // composited at the right z-level (above bg-color, below text/charts).
+      type BgLayer = { dataUrl: string; opacity: number };
+      let bgLayerData: BgLayer | null = null;
       const layers: Layer[] = [];
       const hiddenEls: Array<{ el: HTMLElement; vis: string }> = [];
       const hideEl = (e: HTMLElement) => {
@@ -225,77 +229,99 @@ export function HomeClient() {
         c.closePath();
       };
 
+      // Hoisted so finally can restore it even if toPng throws.
+      let prevElBg = "";
+
       try {
         setExportStatus("🖼️ Snapshot grafico…");
 
-        // 1a. Canvas (PieChart)
-        for (const c of Array.from(
-          el.querySelectorAll("canvas"),
-        ) as HTMLCanvasElement[]) {
-          let dataUrl = "";
-          try {
-            dataUrl = chartSnapshotRef.current
-              ? await chartSnapshotRef.current()
-              : c.toDataURL("image/png");
-          } catch {
-            /* tainted — skip */
-          }
-          if (!dataUrl || dataUrl.length < 200) continue;
-          const r = c.getBoundingClientRect();
-          layers.push({
-            dataUrl,
-            objectFit: "fill",
-            x: r.left - elRect.left,
-            y: r.top - elRect.top,
-            w: r.width,
-            h: r.height,
-          });
-          hideEl(c);
-        }
-
-        setExportStatus("🔄 Conversione immagini…");
-
-        // 1b. All <img> elements
-        for (const imgEl of Array.from(
-          el.querySelectorAll("img"),
-        ) as HTMLImageElement[]) {
-          const src = imgEl.getAttribute("src") ?? "";
-          if (!src) continue;
-          const dataUrl = src.startsWith("data:")
-            ? src
-            : await srcToDataUrl(src);
-          if (!dataUrl) continue;
-          const r = imgEl.getBoundingClientRect();
+        // Collect canvas + img layers in DOM order so the background image
+        // (which appears before the canvas in the DOM) is composited first.
+        for (const node of Array.from(
+          el.querySelectorAll("canvas, img"),
+        ) as HTMLElement[]) {
+          const r = node.getBoundingClientRect();
           if (r.width < 1 || r.height < 1) continue;
-          const clip = findClipAncestor(imgEl);
-          layers.push({
-            dataUrl,
-            objectFit: getComputedStyle(imgEl).objectFit || "fill",
-            x: r.left - elRect.left,
-            y: r.top - elRect.top,
-            w: r.width,
-            h: r.height,
-            ...(clip
-              ? {
-                  clipX: clip.r.left - elRect.left,
-                  clipY: clip.r.top - elRect.top,
-                  clipW: clip.r.width,
-                  clipH: clip.r.height,
-                  clipR: clip.radius,
-                }
-              : {}),
-          });
-          hideEl(imgEl);
+
+          let dataUrl = "";
+
+          if (node instanceof HTMLCanvasElement) {
+            try {
+              dataUrl = chartSnapshotRef.current
+                ? await chartSnapshotRef.current()
+                : node.toDataURL("image/png");
+            } catch {
+              /* tainted — skip */
+            }
+            if (!dataUrl || dataUrl.length < 200) continue;
+            layers.push({
+              dataUrl,
+              objectFit: "fill",
+              x: r.left - elRect.left,
+              y: r.top - elRect.top,
+              w: r.width,
+              h: r.height,
+            });
+            hideEl(node);
+          } else {
+            const imgEl = node as HTMLImageElement;
+            const src = imgEl.getAttribute("src") ?? "";
+            if (!src) continue;
+            dataUrl = src.startsWith("data:")
+              ? src
+              : ((await srcToDataUrl(src)) ?? "");
+            if (!dataUrl) continue;
+
+            // Background image is the aria-hidden decorative img — treat it
+            // separately so it composites BEHIND text but ABOVE the solid
+            // background colour (and with the correct CSS opacity applied).
+            if (imgEl.getAttribute("aria-hidden") === "true") {
+              const opacity = parseFloat(
+                getComputedStyle(imgEl).opacity ?? "1",
+              );
+              bgLayerData = { dataUrl, opacity: isNaN(opacity) ? 1 : opacity };
+              hideEl(imgEl);
+              continue;
+            }
+
+            const clip = findClipAncestor(imgEl);
+            layers.push({
+              dataUrl,
+              objectFit: getComputedStyle(imgEl).objectFit || "fill",
+              x: r.left - elRect.left,
+              y: r.top - elRect.top,
+              w: r.width,
+              h: r.height,
+              ...(clip
+                ? {
+                    clipX: clip.r.left - elRect.left,
+                    clipY: clip.r.top - elRect.top,
+                    clipW: clip.r.width,
+                    clipH: clip.r.height,
+                    clipR: clip.radius,
+                  }
+                : {}),
+            });
+            hideEl(imgEl);
+          }
         }
 
-        // 2. Capture the DOM (text, shapes, backgrounds) with all images hidden.
+        // 2. Capture the DOM (text, UI elements) with all images hidden.
+        // Temporarily clear the element's inline background so the toPng output
+        // has a transparent backing — the solid colour will be filled manually
+        // on the canvas, and the bg image is composited on top of it.
         setExportStatus("✏️ Generazione base…");
+        const elBgColor = getComputedStyle(el).backgroundColor;
+        prevElBg = el.style.backgroundColor;
+        el.style.backgroundColor = "transparent";
         const basePng = await toPng(el, {
           pixelRatio: PR,
           width: EXPORT_SIZE,
           height: EXPORT_SIZE,
           skipFonts: true,
+          backgroundColor: "rgba(0,0,0,0)",
         });
+        el.style.backgroundColor = prevElBg;
 
         // 3. Composite everything on a single canvas.
         setExportStatus("🎨 Composizione immagine…");
@@ -304,7 +330,19 @@ export function HomeClient() {
         finalCanvas.height = EXPORT_SIZE * PR;
         const ctx = finalCanvas.getContext("2d")!;
 
-        // Base layer (text, backgrounds)
+        // Step A: solid background colour (replaces the Tailwind bg-* class)
+        ctx.fillStyle = elBgColor;
+        ctx.fillRect(0, 0, finalCanvas.width, finalCanvas.height);
+
+        // Step B: background image with correct CSS opacity (behind text)
+        if (bgLayerData) {
+          const bgImg = await loadImg(bgLayerData.dataUrl);
+          ctx.globalAlpha = bgLayerData.opacity;
+          ctx.drawImage(bgImg, 0, 0, finalCanvas.width, finalCanvas.height);
+          ctx.globalAlpha = 1;
+        }
+
+        // Step C: text / UI elements (transparent base layer goes on top of bg image)
         ctx.drawImage(
           await loadImg(basePng),
           0,
@@ -313,7 +351,7 @@ export function HomeClient() {
           finalCanvas.height,
         );
 
-        // Image layers in DOM order (preserves z-ordering of the original layout)
+        // Step D: canvas snapshots + logo images in DOM order (on top of text)
         for (const layer of layers) {
           try {
             const img = await loadImg(layer.dataUrl);
@@ -395,6 +433,7 @@ export function HomeClient() {
         hiddenEls.forEach(({ el: e, vis }) => {
           e.style.visibility = vis;
         });
+        el.style.backgroundColor = prevElBg;
         el.style.transform = prevTransform;
         setTimeout(() => setExportStatus(null), 1500);
       }
