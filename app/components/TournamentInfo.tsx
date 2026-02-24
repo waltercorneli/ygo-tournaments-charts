@@ -4,11 +4,14 @@ import { TournamentData } from "../hooks/useTournamentInfos";
 
 interface Props {
   data: TournamentData;
+  participants?: number;
   isDark?: boolean;
 }
 
-export function TournamentInfo({ data, isDark = false }: Props) {
-  const hasAny = Object.values(data).some((v) => v.trim() !== "");
+export function TournamentInfo({ data, participants, isDark = false }: Props) {
+  const hasAny =
+    Object.values(data).some((v) => v.trim() !== "") ||
+    (participants !== undefined && participants > 0);
 
   if (!hasAny) return null;
 
@@ -34,7 +37,9 @@ export function TournamentInfo({ data, isDark = false }: Props) {
                 year: "numeric",
               }),
             data.location,
-            data.participants && `${data.participants} partecipanti`,
+            participants !== undefined && participants > 0
+              ? `${participants} partecipanti`
+              : undefined,
           ]
             .filter(Boolean)
             .map((item, i, arr) => (

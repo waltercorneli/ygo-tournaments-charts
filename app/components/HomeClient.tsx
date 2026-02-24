@@ -212,7 +212,11 @@ export function HomeClient() {
 
             {/* foreground content */}
             <div className="relative h-full flex flex-col gap-6 p-8">
-              <TournamentInfo data={tournamentData} isDark={isDark} />
+              <TournamentInfo
+                data={tournamentData}
+                participants={decks.reduce((sum, d) => sum + d.qty, 0)}
+                isDark={isDark}
+              />
               <div className="flex-1 min-h-0 relative">
                 <div className="h-full">
                   <PieChart

@@ -4,7 +4,6 @@ export interface TournamentData {
   name: string;
   date: string;
   location: string;
-  participants: string;
   logoUrl: string;
 }
 
@@ -12,7 +11,6 @@ const INITIAL: TournamentData = {
   name: "YGO Regional Milano",
   date: "2026-02-23",
   location: "Milano",
-  participants: "128",
   logoUrl: "",
 };
 
