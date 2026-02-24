@@ -106,7 +106,6 @@ export function HomeClient() {
   const exportPng = async () => {
     if (!exportRef.current) return;
     const el = exportRef.current;
-    const prevTransform = el.style.transform;
 
     // Helper: fetch any URL → base64 data URL.
     // iOS Safari blocks <img> inside foreignObject unless src is already a data URL.
@@ -128,16 +127,15 @@ export function HomeClient() {
       }
     };
 
-    setExportStatus("⏳ Attesa caricamento grafico…");
-    el.style.transform = "scale(1)";
+    setExportStatus("⏳ Caricamento grafico…");
 
-    // 1. Replace every <canvas> with a snapshot <img>. Use chartSnapshotRef so
-    //    PieChart confirms all artwork images are loaded before calling toDataURL.
-    type CanvasReplacement = {
-      placeholder: HTMLImageElement;
-      canvas: HTMLCanvasElement;
-    };
-    const canvasReplacements: CanvasReplacement[] = [];
+    // 1. Overlay a snapshot <img> on top of every <canvas> without removing the
+    //    canvas from the DOM. Removing it triggers Chart.js's ResizeObserver
+    //    which resizes the chart to 0 and makes it tiny on re-insertion.
+    type CanvasOverlay = { overlay: HTMLImageElement; parent: HTMLElement };
+    const canvasOverlays: CanvasOverlay[] = [];
+    type ImgRestoration = { img: HTMLImageElement; originalSrc: string };
+    const imgRestorations: ImgRestoration[] = [];
 
     try {
       await Promise.all(
@@ -146,32 +144,29 @@ export function HomeClient() {
           const dataUrl = chartSnapshotRef.current
             ? await chartSnapshotRef.current()
             : c.toDataURL("image/png");
-          setExportStatus("🖼️ Snapshot grafico acquisito…");
-          const img = document.createElement("img");
-          img.src = dataUrl;
-          img.style.cssText = c.style.cssText;
-          img.style.width = `${c.offsetWidth}px`;
-          img.style.height = `${c.offsetHeight}px`;
-          img.className = c.className;
-          c.parentElement?.replaceChild(img, c);
-          canvasReplacements.push({ placeholder: img, canvas: c });
+          const overlay = document.createElement("img");
+          overlay.src = dataUrl;
+          overlay.style.position = "absolute";
+          overlay.style.top = c.offsetTop + "px";
+          overlay.style.left = c.offsetLeft + "px";
+          overlay.style.width = c.offsetWidth + "px";
+          overlay.style.height = c.offsetHeight + "px";
+          overlay.style.zIndex = "1";
+          const parent = c.parentElement as HTMLElement;
+          if (parent.style.position === "") parent.style.position = "relative";
+          parent.appendChild(overlay);
+          // Hide the real canvas so toPng only captures the static img
+          c.style.visibility = "hidden";
+          canvasOverlays.push({ overlay, parent });
         }),
       );
 
       // 2. Pre-convert every <img> src to a data URL (fixes logos on iOS).
-      type ImgRestoration = { img: HTMLImageElement; originalSrc: string };
-      const imgRestorations: ImgRestoration[] = [];
-      const imgEls = Array.from(el.querySelectorAll("img"));
-      setExportStatus(`🔄 Conversione immagini (0 / ${imgEls.length})…`);
-      let converted = 0;
+      setExportStatus("🔄 Caricamento immagini…");
       await Promise.all(
-        imgEls.map(async (imgEl) => {
+        Array.from(el.querySelectorAll("img")).map(async (imgEl) => {
           const img = imgEl as HTMLImageElement;
           const src = img.getAttribute("src") ?? "";
-          converted++;
-          setExportStatus(
-            `🔄 Conversione immagini (${converted} / ${imgEls.length})…`,
-          );
           if (!src || src.startsWith("data:")) return;
           const dataUrl = await srcToDataUrl(src);
           if (dataUrl) {
@@ -189,21 +184,40 @@ export function HomeClient() {
         skipFonts: true,
       });
 
-      setExportStatus("✅ Download in corso…");
-      const link = document.createElement("a");
-      link.download = `${tournamentData.name || "torneo"}.png`;
-      link.href = dataUrl;
-      link.click();
+      setExportStatus("✅ Download…");
 
-      // Restore img src values
+      // iOS (Safari and Chrome) blocks programmatic anchor downloads.
+      // Open the image in a new tab instead so the user can long-press to save.
+      const isIOS =
+        /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+        (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+
+      if (isIOS) {
+        const win = window.open("", "_blank");
+        if (win) {
+          win.document.write(
+            `<html><head><title>${tournamentData.name || "torneo"}</title></head>` +
+              `<body style="margin:0;background:#000"><img src="${dataUrl}" style="width:100%;display:block"></body></html>`,
+          );
+          win.document.close();
+        }
+      } else {
+        const link = document.createElement("a");
+        link.download = `${tournamentData.name || "torneo"}.png`;
+        link.href = dataUrl;
+        link.click();
+      }
+    } finally {
       imgRestorations.forEach(({ img, originalSrc }) => {
         img.src = originalSrc;
       });
-    } finally {
-      canvasReplacements.forEach(({ placeholder, canvas }) => {
-        placeholder.parentElement?.replaceChild(canvas, placeholder);
+      // Remove overlays and restore canvas visibility — chart is never touched.
+      canvasOverlays.forEach(({ overlay, parent }) => {
+        overlay.remove();
+        // Restore hidden canvas
+        const canvas = parent.querySelector("canvas") as HTMLCanvasElement | null;
+        if (canvas) canvas.style.visibility = "";
       });
-      el.style.transform = prevTransform;
       setTimeout(() => setExportStatus(null), 1500);
     }
   };
