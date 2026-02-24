@@ -61,12 +61,15 @@ export function HomeClient() {
     setLogoUrl: setTournamentLogoUrl,
   } = useTournamentInfos();
 
+  const [deckImages, setDeckImages] = useState<Record<string, string>>({});
+
   const [bgUrl, setBgUrl] = useState<string | null>(null);
   const [bgOpacity, setBgOpacity] = useState(15);
   const [isDark, setIsDark] = useState(true);
   const [darkPieStroke, setDarkPieStroke] = useState(true);
   const [showTeamInfo, setShowTeamInfo] = useState(true);
   const [showSideChart, setShowSideChart] = useState(false);
+  const [progressivePctFont, setProgressivePctFont] = useState(true);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [exportStatus, setExportStatus] = useState<string | null>(null);
   // iOS: show the generated image in a full-screen modal so the user can
@@ -609,6 +612,18 @@ export function HomeClient() {
             >
               {showSideChart ? "📊 Specchietto deck" : "🏷️ Label fette"}
             </button>
+            {showSideChart && (
+              <button
+                onClick={() => setProgressivePctFont((p) => !p)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 text-xs rounded border w-full justify-center ${
+                  progressivePctFont
+                    ? "border-blue-400 bg-blue-50 text-blue-700 hover:bg-blue-100"
+                    : "border-gray-300 bg-gray-100 hover:bg-gray-200"
+                }`}
+              >
+                {progressivePctFont ? "🔡 Font progressivo" : "🔡 Font fisso"}
+              </button>
+            )}
             <button
               onClick={exportPng}
               disabled={exportStatus !== null}
@@ -669,13 +684,19 @@ export function HomeClient() {
                         darkStroke={darkPieStroke}
                         showLabels={!showSideChart}
                         showSlicePercentages={showSideChart}
+                        progressivePctFont={progressivePctFont}
                         extraPaddingLeft={showSideChart ? 850 : 0}
+                        onImagesChange={setDeckImages}
                         snapshotRef={chartSnapshotRef}
                       />
                     </div>
                     {showSideChart && (
                       <div className="absolute top-0 left-0 w-1/4">
-                        <DecksBarChart {...chartData} isDark={isDark} />
+                        <DecksBarChart
+                          {...chartData}
+                          isDark={isDark}
+                          sliceImages={deckImages}
+                        />
                       </div>
                     )}
                   </div>

@@ -23,7 +23,9 @@ export function PieChart({
   darkStroke,
   showLabels = true,
   showSlicePercentages = false,
+  progressivePctFont = true,
   extraPaddingLeft = 0,
+  onImagesChange,
   snapshotRef,
 }: DecksChartData & {
   imageSearchOverrides?: Record<string, string>;
@@ -33,7 +35,11 @@ export function PieChart({
   darkStroke?: boolean;
   showLabels?: boolean;
   showSlicePercentages?: boolean;
+  /** When true the percentage labels on slices use a font size proportional to the slice value. */
+  progressivePctFont?: boolean;
   extraPaddingLeft?: number;
+  /** Called whenever the label→imageURL map changes (e.g. user picks a new artwork). */
+  onImagesChange?: (images: Record<string, string>) => void;
   /** Call this to get a canvas data URL that is guaranteed to have all
    *  artwork images fully painted (waits for loading if needed). */
   snapshotRef?: React.RefObject<(() => Promise<string>) | null>;
@@ -54,6 +60,9 @@ export function PieChart({
 
   const showSlicePercentagesRef = useRef(showSlicePercentages);
   showSlicePercentagesRef.current = showSlicePercentages;
+
+  const progressivePctFontRef = useRef(progressivePctFont);
+  progressivePctFontRef.current = progressivePctFont;
 
   const extraPaddingLeftRef = useRef(extraPaddingLeft);
   extraPaddingLeftRef.current = extraPaddingLeft;
@@ -261,6 +270,21 @@ export function PieChart({
     }
   }, [showSlicePercentages]);
 
+  // Redraw chart when progressive font toggle changes
+  useEffect(() => {
+    try {
+      chartRef.current?.update();
+    } catch {
+      // chart may be mid-rebuild, skip
+    }
+  }, [progressivePctFont]);
+
+  // Notify parent whenever the selected images map changes
+  useEffect(() => {
+    onImagesChange?.(selectedImages);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedImages]);
+
   // Auto-select first image when options load
   useEffect(() => {
     setSelectedImages(() => {
@@ -374,7 +398,8 @@ export function PieChart({
             };
             const value = data[i];
             if (tot <= 0 || value / tot < 0.025) return; // skip tiny slices
-            const pct = ((value / tot) * 100).toFixed(1);
+            const pctValue = (value / tot) * 100;
+            const pct = pctValue.toFixed(1);
             const midAngle = (arc.startAngle + arc.endAngle) / 2;
             const cos = Math.cos(midAngle);
             const sin = Math.sin(midAngle);
@@ -384,7 +409,10 @@ export function PieChart({
             const tx = arc.x + cos * r0;
             const ty = arc.y + sin * r0;
 
-            const fontSize = Math.max(12, Math.round(28 * tS));
+            // Font size: fixed baseline or grows progressively with slice %
+            const fontSize = progressivePctFontRef.current
+              ? Math.max(12, Math.round((12 + pctValue * 0.85) * tS))
+              : Math.max(12, Math.round(28 * tS));
             ctx.save();
             ctx.font = `bold ${fontSize}px system-ui, sans-serif`;
             ctx.textAlign = "center";
