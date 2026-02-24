@@ -186,26 +186,28 @@ export function HomeClient() {
 
       setExportStatus("✅ Download…");
 
-      // iOS (Safari and Chrome) blocks programmatic anchor downloads.
-      // Open the image in a new tab instead so the user can long-press to save.
-      const isIOS =
-        /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-        (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+      const fileName = `${tournamentData.name || "torneo"}.png`;
 
-      if (isIOS) {
-        const win = window.open("", "_blank");
-        if (win) {
-          win.document.write(
-            `<html><head><title>${tournamentData.name || "torneo"}</title></head>` +
-              `<body style="margin:0;background:#000"><img src="${dataUrl}" style="width:100%;display:block"></body></html>`,
-          );
-          win.document.close();
-        }
+      // Convert data URL → Blob for both paths below.
+      const res2 = await fetch(dataUrl);
+      const blob = await res2.blob();
+
+      // Web Share API (iOS Safari 15+, iOS Chrome) — shares as a File so the
+      // user gets the native share sheet and can save to Photos / Files.
+      // Falls back to anchor download on desktop.
+      const file = new File([blob], fileName, { type: "image/png" });
+      if (
+        typeof navigator.share === "function" &&
+        navigator.canShare?.({ files: [file] })
+      ) {
+        await navigator.share({ files: [file], title: fileName });
       } else {
+        const url = URL.createObjectURL(blob);
         const link = document.createElement("a");
-        link.download = `${tournamentData.name || "torneo"}.png`;
-        link.href = dataUrl;
+        link.download = fileName;
+        link.href = url;
         link.click();
+        setTimeout(() => URL.revokeObjectURL(url), 5000);
       }
     } finally {
       imgRestorations.forEach(({ img, originalSrc }) => {
