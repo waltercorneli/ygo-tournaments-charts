@@ -106,8 +106,10 @@ export function HomeClient() {
   const exportPng = async () => {
     if (!exportRef.current) return;
     const el = exportRef.current;
+    const prevTransform = el.style.transform;
 
     // Helper: fetch any URL → base64 data URL.
+    // iOS Safari blocks <img> inside foreignObject unless src is already a data URL.
     const srcToDataUrl = async (src: string): Promise<string | null> => {
       try {
         const abs = src.startsWith("http")
@@ -126,94 +128,85 @@ export function HomeClient() {
       }
     };
 
-    setExportStatus("⏳ Caricamento grafico…");
+    setExportStatus("⏳ Attesa caricamento grafico…");
+    el.style.transform = "scale(1)";
 
-    // Clone the export element to an offscreen node so the live DOM (and
-    // Chart.js's ResizeObserver on the canvas) is never touched.
-    const clone = el.cloneNode(true) as HTMLElement;
-    clone.style.transform = "none"; // remove the scale() — clone is 1080×1080
-    clone.style.position = "fixed";
-    clone.style.top = "-99999px";
-    clone.style.left = "-99999px";
-    clone.style.zIndex = "-1";
-    clone.style.pointerEvents = "none";
-    document.body.appendChild(clone);
+    // 1. Replace every <canvas> with a snapshot <img>. Use chartSnapshotRef so
+    //    PieChart confirms all artwork images are loaded before calling toDataURL.
+    type CanvasReplacement = {
+      placeholder: HTMLImageElement;
+      canvas: HTMLCanvasElement;
+    };
+    const canvasReplacements: CanvasReplacement[] = [];
 
     try {
-      // 1. Replace each dead canvas in the clone with the live snapshot.
-      const origCanvases = Array.from(el.querySelectorAll("canvas"));
-      const cloneCanvases = Array.from(clone.querySelectorAll("canvas"));
-
-      setExportStatus("🖼️ Snapshot grafico…");
       await Promise.all(
-        origCanvases.map(async (origCanvas, i) => {
-          const c = origCanvas as HTMLCanvasElement;
+        Array.from(el.querySelectorAll("canvas")).map(async (canvas) => {
+          const c = canvas as HTMLCanvasElement;
           const dataUrl = chartSnapshotRef.current
             ? await chartSnapshotRef.current()
             : c.toDataURL("image/png");
+          setExportStatus("🖼️ Snapshot grafico acquisito…");
           const img = document.createElement("img");
           img.src = dataUrl;
-          // Keep the same CSS size as the original canvas in the 1080px layout
-          img.style.width = c.offsetWidth + "px";
-          img.style.height = c.offsetHeight + "px";
-          img.style.display = "block";
-          cloneCanvases[i]?.replaceWith(img);
+          img.style.cssText = c.style.cssText;
+          img.style.width = `${c.offsetWidth}px`;
+          img.style.height = `${c.offsetHeight}px`;
+          img.className = c.className;
+          c.parentElement?.replaceChild(img, c);
+          canvasReplacements.push({ placeholder: img, canvas: c });
         }),
       );
 
-      // 2. Pre-convert every <img> src in the clone to a data URL (fixes logos on iOS).
-      setExportStatus("🔄 Caricamento immagini…");
+      // 2. Pre-convert every <img> src to a data URL (fixes logos on iOS).
+      type ImgRestoration = { img: HTMLImageElement; originalSrc: string };
+      const imgRestorations: ImgRestoration[] = [];
+      const imgEls = Array.from(el.querySelectorAll("img"));
+      setExportStatus(`🔄 Conversione immagini (0 / ${imgEls.length})…`);
+      let converted = 0;
       await Promise.all(
-        Array.from(clone.querySelectorAll("img")).map(async (imgEl) => {
+        imgEls.map(async (imgEl) => {
           const img = imgEl as HTMLImageElement;
           const src = img.getAttribute("src") ?? "";
+          converted++;
+          setExportStatus(
+            `🔄 Conversione immagini (${converted} / ${imgEls.length})…`,
+          );
           if (!src || src.startsWith("data:")) return;
           const dataUrl = await srcToDataUrl(src);
-          if (dataUrl) img.src = dataUrl;
+          if (dataUrl) {
+            imgRestorations.push({ img, originalSrc: src });
+            img.src = dataUrl;
+          }
         }),
       );
 
       setExportStatus("✏️ Generazione PNG…");
-      const dataUrl = await toPng(clone, {
+      const dataUrl = await toPng(el, {
         pixelRatio: 3,
         width: EXPORT_SIZE,
         height: EXPORT_SIZE,
         skipFonts: true,
       });
 
-      setExportStatus("✅ Download…");
+      setExportStatus("✅ Download in corso…");
+      const link = document.createElement("a");
+      link.download = `${tournamentData.name || "torneo"}.png`;
+      link.href = dataUrl;
+      link.click();
 
-      const fileName = `${tournamentData.name || "torneo"}.png`;
-      const res2 = await fetch(dataUrl);
-      const blob = await res2.blob();
-
-      // Web Share API (iOS Safari 15+, iOS Chrome) → native share sheet.
-      // Wrap in try/catch so AbortError (user cancelled) doesn't break anything.
-      const file = new File([blob], fileName, { type: "image/png" });
-      if (
-        typeof navigator.share === "function" &&
-        navigator.canShare?.({ files: [file] })
-      ) {
-        try {
-          await navigator.share({ files: [file], title: fileName });
-        } catch (err) {
-          if (err instanceof Error && err.name !== "AbortError") throw err;
-        }
-      } else {
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.download = fileName;
-        link.href = url;
-        link.click();
-        setTimeout(() => URL.revokeObjectURL(url), 5000);
-      }
+      // Restore img src values
+      imgRestorations.forEach(({ img, originalSrc }) => {
+        img.src = originalSrc;
+      });
     } finally {
-      // Discard the clone — the live DOM is completely untouched.
-      document.body.removeChild(clone);
+      canvasReplacements.forEach(({ placeholder, canvas }) => {
+        placeholder.parentElement?.replaceChild(canvas, placeholder);
+      });
+      el.style.transform = prevTransform;
       setTimeout(() => setExportStatus(null), 1500);
     }
   };
-
   // Build imageSearch overrides map: label → imageSearch term
   const imageSearchOverrides = Object.fromEntries(
     decks
