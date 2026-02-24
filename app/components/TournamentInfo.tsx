@@ -21,6 +21,11 @@ export function TournamentInfo({ data, participants, isDark = false }: Props) {
         {data.name && (
           <h2
             className={`text-[3.6rem] font-extrabold tracking-tight ${isDark ? "text-white" : "text-gray-900"}`}
+            style={{
+              textShadow: isDark
+                ? "-1.5px -1.5px 0 rgba(0,0,0,0.55), 1.5px -1.5px 0 rgba(0,0,0,0.55), -1.5px 1.5px 0 rgba(0,0,0,0.55), 1.5px 1.5px 0 rgba(0,0,0,0.55)"
+                : "-1.5px -1.5px 0 rgba(255,255,255,0.75), 1.5px -1.5px 0 rgba(255,255,255,0.75), -1.5px 1.5px 0 rgba(255,255,255,0.75), 1.5px 1.5px 0 rgba(255,255,255,0.75)",
+            }}
           >
             {data.name}
           </h2>
@@ -28,6 +33,11 @@ export function TournamentInfo({ data, participants, isDark = false }: Props) {
 
         <div
           className={`mt-2 flex flex-wrap justify-center gap-x-3 gap-y-1 text-[1.5rem] ${isDark ? "text-gray-300" : "text-gray-600"}`}
+          style={{
+            textShadow: isDark
+              ? "-1px -1px 0 rgba(0,0,0,0.5), 1px -1px 0 rgba(0,0,0,0.5), -1px 1px 0 rgba(0,0,0,0.5), 1px 1px 0 rgba(0,0,0,0.5)"
+              : "-1px -1px 0 rgba(255,255,255,0.7), 1px -1px 0 rgba(255,255,255,0.7), -1px 1px 0 rgba(255,255,255,0.7), 1px 1px 0 rgba(255,255,255,0.7)",
+          }}
         >
           {[
             data.date &&
