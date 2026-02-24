@@ -108,7 +108,6 @@ export function HomeClient() {
     const el = exportRef.current;
 
     // Helper: fetch any URL → base64 data URL.
-    // iOS Safari blocks <img> inside foreignObject unless src is already a data URL.
     const srcToDataUrl = async (src: string): Promise<string | null> => {
       try {
         const abs = src.startsWith("http")
@@ -129,55 +128,53 @@ export function HomeClient() {
 
     setExportStatus("⏳ Caricamento grafico…");
 
-    // 1. Overlay a snapshot <img> on top of every <canvas> without removing the
-    //    canvas from the DOM. Removing it triggers Chart.js's ResizeObserver
-    //    which resizes the chart to 0 and makes it tiny on re-insertion.
-    type CanvasOverlay = { overlay: HTMLImageElement; parent: HTMLElement };
-    const canvasOverlays: CanvasOverlay[] = [];
-    type ImgRestoration = { img: HTMLImageElement; originalSrc: string };
-    const imgRestorations: ImgRestoration[] = [];
+    // Clone the export element to an offscreen node so the live DOM (and
+    // Chart.js's ResizeObserver on the canvas) is never touched.
+    const clone = el.cloneNode(true) as HTMLElement;
+    clone.style.transform = "none"; // remove the scale() — clone is 1080×1080
+    clone.style.position = "fixed";
+    clone.style.top = "-99999px";
+    clone.style.left = "-99999px";
+    clone.style.zIndex = "-1";
+    clone.style.pointerEvents = "none";
+    document.body.appendChild(clone);
 
     try {
+      // 1. Replace each dead canvas in the clone with the live snapshot.
+      const origCanvases = Array.from(el.querySelectorAll("canvas"));
+      const cloneCanvases = Array.from(clone.querySelectorAll("canvas"));
+
+      setExportStatus("🖼️ Snapshot grafico…");
       await Promise.all(
-        Array.from(el.querySelectorAll("canvas")).map(async (canvas) => {
-          const c = canvas as HTMLCanvasElement;
+        origCanvases.map(async (origCanvas, i) => {
+          const c = origCanvas as HTMLCanvasElement;
           const dataUrl = chartSnapshotRef.current
             ? await chartSnapshotRef.current()
             : c.toDataURL("image/png");
-          const overlay = document.createElement("img");
-          overlay.src = dataUrl;
-          overlay.style.position = "absolute";
-          overlay.style.top = c.offsetTop + "px";
-          overlay.style.left = c.offsetLeft + "px";
-          overlay.style.width = c.offsetWidth + "px";
-          overlay.style.height = c.offsetHeight + "px";
-          overlay.style.zIndex = "1";
-          const parent = c.parentElement as HTMLElement;
-          if (parent.style.position === "") parent.style.position = "relative";
-          parent.appendChild(overlay);
-          // Hide the real canvas so toPng only captures the static img
-          c.style.visibility = "hidden";
-          canvasOverlays.push({ overlay, parent });
+          const img = document.createElement("img");
+          img.src = dataUrl;
+          // Keep the same CSS size as the original canvas in the 1080px layout
+          img.style.width = c.offsetWidth + "px";
+          img.style.height = c.offsetHeight + "px";
+          img.style.display = "block";
+          cloneCanvases[i]?.replaceWith(img);
         }),
       );
 
-      // 2. Pre-convert every <img> src to a data URL (fixes logos on iOS).
+      // 2. Pre-convert every <img> src in the clone to a data URL (fixes logos on iOS).
       setExportStatus("🔄 Caricamento immagini…");
       await Promise.all(
-        Array.from(el.querySelectorAll("img")).map(async (imgEl) => {
+        Array.from(clone.querySelectorAll("img")).map(async (imgEl) => {
           const img = imgEl as HTMLImageElement;
           const src = img.getAttribute("src") ?? "";
           if (!src || src.startsWith("data:")) return;
           const dataUrl = await srcToDataUrl(src);
-          if (dataUrl) {
-            imgRestorations.push({ img, originalSrc: src });
-            img.src = dataUrl;
-          }
+          if (dataUrl) img.src = dataUrl;
         }),
       );
 
       setExportStatus("✏️ Generazione PNG…");
-      const dataUrl = await toPng(el, {
+      const dataUrl = await toPng(clone, {
         pixelRatio: 3,
         width: EXPORT_SIZE,
         height: EXPORT_SIZE,
@@ -187,20 +184,21 @@ export function HomeClient() {
       setExportStatus("✅ Download…");
 
       const fileName = `${tournamentData.name || "torneo"}.png`;
-
-      // Convert data URL → Blob for both paths below.
       const res2 = await fetch(dataUrl);
       const blob = await res2.blob();
 
-      // Web Share API (iOS Safari 15+, iOS Chrome) — shares as a File so the
-      // user gets the native share sheet and can save to Photos / Files.
-      // Falls back to anchor download on desktop.
+      // Web Share API (iOS Safari 15+, iOS Chrome) → native share sheet.
+      // Wrap in try/catch so AbortError (user cancelled) doesn't break anything.
       const file = new File([blob], fileName, { type: "image/png" });
       if (
         typeof navigator.share === "function" &&
         navigator.canShare?.({ files: [file] })
       ) {
-        await navigator.share({ files: [file], title: fileName });
+        try {
+          await navigator.share({ files: [file], title: fileName });
+        } catch (err) {
+          if (err instanceof Error && err.name !== "AbortError") throw err;
+        }
       } else {
         const url = URL.createObjectURL(blob);
         const link = document.createElement("a");
@@ -210,18 +208,8 @@ export function HomeClient() {
         setTimeout(() => URL.revokeObjectURL(url), 5000);
       }
     } finally {
-      imgRestorations.forEach(({ img, originalSrc }) => {
-        img.src = originalSrc;
-      });
-      // Remove overlays and restore canvas visibility — chart is never touched.
-      canvasOverlays.forEach(({ overlay, parent }) => {
-        overlay.remove();
-        // Restore hidden canvas
-        const canvas = parent.querySelector(
-          "canvas",
-        ) as HTMLCanvasElement | null;
-        if (canvas) canvas.style.visibility = "";
-      });
+      // Discard the clone — the live DOM is completely untouched.
+      document.body.removeChild(clone);
       setTimeout(() => setExportStatus(null), 1500);
     }
   };
