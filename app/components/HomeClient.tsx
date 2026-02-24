@@ -63,7 +63,9 @@ export function HomeClient() {
 
   const [deckImages, setDeckImages] = useState<Record<string, string>>({});
 
-  const [bgUrl, setBgUrl] = useState<string | null>(null);
+  const [bgUrl, setBgUrl] = useState<string | null>(
+    "/images/plane-background.webp",
+  );
   const [bgOpacity, setBgOpacity] = useState(15);
   const [isDark, setIsDark] = useState(true);
   const [darkPieStroke, setDarkPieStroke] = useState(true);
