@@ -46,7 +46,11 @@ export function PlayersTop({
       </h2>
       <div
         className={`w-full flex-1 rounded border px-5 py-4 backdrop-blur-[4px] ${isDark ? "border-gray-600/70" : "border-gray-200/70"}`}
-        style={{ backgroundColor: isDark ? `rgba(31,41,55,${panelOpacity / 100})` : `rgba(249,250,251,${panelOpacity / 100})` }}
+        style={{
+          backgroundColor: isDark
+            ? `rgba(31,41,55,${panelOpacity / 100})`
+            : `rgba(249,250,251,${panelOpacity / 100})`,
+        }}
       >
         <div
           className="grid items-center gap-x-2 gap-y-2 h-full"

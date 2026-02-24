@@ -21,7 +21,11 @@ export function DecksBarChart({
   return (
     <div
       className={`flex flex-col justify-start gap-3 h-full px-2 py-2 backdrop-blur-sm rounded border ${isDark ? "border-gray-600/70" : "border-gray-200/70"}`}
-      style={{ backgroundColor: isDark ? `rgba(31,41,55,${panelOpacity / 100})` : `rgba(249,250,251,${panelOpacity / 100})` }}
+      style={{
+        backgroundColor: isDark
+          ? `rgba(31,41,55,${panelOpacity / 100})`
+          : `rgba(249,250,251,${panelOpacity / 100})`,
+      }}
     >
       {labels.map((label, i) => {
         const barWidth = max > 0 ? (data[i] / max) * 100 : 0;

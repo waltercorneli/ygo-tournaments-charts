@@ -593,7 +593,9 @@ export function HomeClient() {
               {isDarkPanels ? "☀️ Specchietti chiari" : "🌙 Specchietti scuri"}
             </button>
             <div className="flex items-center gap-2 px-1">
-              <span className="text-xs text-gray-500 flex-shrink-0">Opacità</span>
+              <span className="text-xs text-gray-500 flex-shrink-0">
+                Opacità
+              </span>
               <input
                 type="range"
                 min={0}
@@ -603,7 +605,9 @@ export function HomeClient() {
                 onChange={(e) => setPanelOpacity(Number(e.target.value))}
                 className="flex-1 accent-blue-500"
               />
-              <span className="text-xs text-gray-500 w-8 text-right">{panelOpacity}%</span>
+              <span className="text-xs text-gray-500 w-8 text-right">
+                {panelOpacity}%
+              </span>
             </div>
             <button
               onClick={() => setDarkPieStroke((p) => !p)}
@@ -662,7 +666,7 @@ export function HomeClient() {
           <div className="flex-1 min-h-0 flex items-center justify-center">
             <div
               ref={containerRef}
-              className="aspect-square h-full relative overflow-hidden rounded-xl"
+              className="aspect-square h-full relative overflow-hidden"
             >
               {/* Inner div fixed at EXPORT_SIZE × EXPORT_SIZE, then CSS-scaled to fit.
               Layout size stays 1080px so html-to-image captures exactly 1080×1080.
@@ -678,7 +682,7 @@ export function HomeClient() {
                   transform: `scale(${scale})`,
                   transformOrigin: "top left",
                 }}
-                className={`rounded-xl overflow-hidden ${isDark ? "bg-gray-900" : "bg-white"}`}
+                className={`overflow-hidden ${isDark ? "bg-gray-900" : "bg-white"}`}
               >
                 {/* faded background */}
                 {bgUrl && (
@@ -735,7 +739,11 @@ export function HomeClient() {
                     </div>
                     {showTeamInfo && (
                       <div className="flex-[1] min-w-0">
-                        <TeamInfo isDark={isDarkPanels} isDarkTitle={isDark} panelOpacity={panelOpacity} />
+                        <TeamInfo
+                          isDark={isDarkPanels}
+                          isDarkTitle={isDark}
+                          panelOpacity={panelOpacity}
+                        />
                       </div>
                     )}
                   </div>

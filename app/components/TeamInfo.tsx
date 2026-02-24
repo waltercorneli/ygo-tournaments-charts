@@ -16,7 +16,11 @@ export function TeamInfo({
       </h2>
       <div
         className={`flex flex-col gap-2 rounded border px-4 py-3 flex-1 backdrop-blur-[4px] ${isDark ? "border-gray-600/70" : "border-gray-200/70"}`}
-        style={{ backgroundColor: isDark ? `rgba(31,41,55,${panelOpacity / 100})` : `rgba(249,250,251,${panelOpacity / 100})` }}
+        style={{
+          backgroundColor: isDark
+            ? `rgba(31,41,55,${panelOpacity / 100})`
+            : `rgba(249,250,251,${panelOpacity / 100})`,
+        }}
       >
         {/* Logo YGO Frosinone */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
