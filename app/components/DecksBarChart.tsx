@@ -6,9 +6,11 @@ export function DecksBarChart({
   colors,
   isDark = false,
   sliceImages = {},
+  panelOpacity = 60,
 }: DecksChartData & {
   isDark?: boolean;
   sliceImages?: Record<string, string>;
+  panelOpacity?: number;
 }) {
   const total = data.reduce((s, v) => s + v, 0);
   const max = Math.max(...data);
@@ -18,7 +20,8 @@ export function DecksBarChart({
 
   return (
     <div
-      className={`flex flex-col justify-start gap-3 h-full px-2 py-2 backdrop-blur-sm rounded border ${isDark ? "border-gray-600/70 bg-gray-800/60" : "border-gray-200/70 bg-gray-50/60"}`}
+      className={`flex flex-col justify-start gap-3 h-full px-2 py-2 backdrop-blur-sm rounded border ${isDark ? "border-gray-600/70" : "border-gray-200/70"}`}
+      style={{ backgroundColor: isDark ? `rgba(31,41,55,${panelOpacity / 100})` : `rgba(249,250,251,${panelOpacity / 100})` }}
     >
       {labels.map((label, i) => {
         const barWidth = max > 0 ? (data[i] / max) * 100 : 0;
@@ -37,7 +40,7 @@ export function DecksBarChart({
               >
                 {data[i]}{" "}
                 <span
-                  className={`text-[0.75rem] ${isDark ? "text-gray-500" : "text-gray-400"}`}
+                  className={`text-[0.75rem] ${isDark ? "text-gray-500" : "text-gray-600"}`}
                 >
                   / {total}
                 </span>
@@ -46,7 +49,7 @@ export function DecksBarChart({
             {/* Track */}
             <div
               className={`w-full overflow-hidden ${
-                hasImages ? "rounded h-4" : "rounded-full h-2"
+                hasImages ? "rounded h-3" : "rounded-full h-1.5"
               } ${isDark ? "bg-gray-700" : "bg-gray-200"}`}
             >
               {/* Fill */}

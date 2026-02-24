@@ -69,6 +69,7 @@ export function HomeClient() {
   const [bgOpacity, setBgOpacity] = useState(15);
   const [isDark, setIsDark] = useState(true);
   const [isDarkPanels, setIsDarkPanels] = useState(true);
+  const [panelOpacity, setPanelOpacity] = useState(60);
   const [darkPieStroke, setDarkPieStroke] = useState(true);
   const [showTeamInfo, setShowTeamInfo] = useState(true);
   const [showSideChart, setShowSideChart] = useState(false);
@@ -591,6 +592,19 @@ export function HomeClient() {
             >
               {isDarkPanels ? "☀️ Specchietti chiari" : "🌙 Specchietti scuri"}
             </button>
+            <div className="flex items-center gap-2 px-1">
+              <span className="text-xs text-gray-500 flex-shrink-0">Opacità</span>
+              <input
+                type="range"
+                min={0}
+                max={100}
+                step={5}
+                value={panelOpacity}
+                onChange={(e) => setPanelOpacity(Number(e.target.value))}
+                className="flex-1 accent-blue-500"
+              />
+              <span className="text-xs text-gray-500 w-8 text-right">{panelOpacity}%</span>
+            </div>
             <button
               onClick={() => setDarkPieStroke((p) => !p)}
               className={`flex items-center gap-1.5 px-3 py-1.5 text-xs rounded border w-full justify-center ${
@@ -705,6 +719,7 @@ export function HomeClient() {
                           {...chartData}
                           isDark={isDarkPanels}
                           sliceImages={deckImages}
+                          panelOpacity={panelOpacity}
                         />
                       </div>
                     )}
@@ -715,11 +730,12 @@ export function HomeClient() {
                         players={playersInfos.players}
                         isDark={isDarkPanels}
                         isDarkTitle={isDark}
+                        panelOpacity={panelOpacity}
                       />
                     </div>
                     {showTeamInfo && (
                       <div className="flex-[1] min-w-0">
-                        <TeamInfo isDark={isDarkPanels} isDarkTitle={isDark} />
+                        <TeamInfo isDark={isDarkPanels} isDarkTitle={isDark} panelOpacity={panelOpacity} />
                       </div>
                     )}
                   </div>

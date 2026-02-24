@@ -14,12 +14,14 @@ interface PlayersTopProps {
   players: PlayerEntry[];
   isDark?: boolean;
   isDarkTitle?: boolean;
+  panelOpacity?: number;
 }
 
 export function PlayersTop({
   players,
   isDark = false,
   isDarkTitle = isDark,
+  panelOpacity = 60,
 }: PlayersTopProps) {
   const filled = players.filter((p) => p.name.trim() !== "");
 
@@ -43,7 +45,8 @@ export function PlayersTop({
         CLASSIFICA
       </h2>
       <div
-        className={`w-full flex-1 rounded border px-5 py-4 backdrop-blur-[4px] ${isDark ? "border-gray-600/70 bg-gray-800/60" : "border-gray-200/70 bg-gray-50/60"}`}
+        className={`w-full flex-1 rounded border px-5 py-4 backdrop-blur-[4px] ${isDark ? "border-gray-600/70" : "border-gray-200/70"}`}
+        style={{ backgroundColor: isDark ? `rgba(31,41,55,${panelOpacity / 100})` : `rgba(249,250,251,${panelOpacity / 100})` }}
       >
         <div
           className="grid items-center gap-x-2 gap-y-2 h-full"
