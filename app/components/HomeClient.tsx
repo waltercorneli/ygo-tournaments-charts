@@ -10,6 +10,7 @@ import { BackgroundImage } from "./BackgroundImage";
 import { TournamentInfo } from "./TournamentInfo";
 import { TournamentChart } from "./TournamentChart";
 import { TeamInfo } from "./TeamInfo";
+import { DecksBarChart } from "./DecksBarChart";
 import { useDecksInfos, DeckEntry } from "../hooks/useDecksInfos";
 import { usePlayersInfos } from "../hooks/usePlayersInfos";
 import { useTournamentInfos } from "../hooks/useTournamentInfos";
@@ -59,6 +60,8 @@ export function HomeClient() {
   const [bgUrl, setBgUrl] = useState<string | null>(null);
   const [bgOpacity, setBgOpacity] = useState(15);
   const [isDark, setIsDark] = useState(true);
+  const [showTeamInfo, setShowTeamInfo] = useState(true);
+  const [showSideChart, setShowSideChart] = useState(false);
 
   const handleBgChange = (url: string | null, opacity: number) => {
     setBgUrl(url);
@@ -118,6 +121,26 @@ export function HomeClient() {
             {isDark ? "☀️ Modalità chiara" : "🌙 Modalità notte"}
           </button>
           <button
+            onClick={() => setShowTeamInfo((p) => !p)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs rounded border ${
+              showTeamInfo
+                ? "border-blue-400 bg-blue-50 text-blue-700 hover:bg-blue-100"
+                : "border-gray-300 bg-gray-100 hover:bg-gray-200"
+            }`}
+          >
+            {showTeamInfo ? "🏠 Nascondi Team Info" : "🏠 Mostra Team Info"}
+          </button>
+          <button
+            onClick={() => setShowSideChart((p) => !p)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs rounded border ${
+              showSideChart
+                ? "border-blue-400 bg-blue-50 text-blue-700 hover:bg-blue-100"
+                : "border-gray-300 bg-gray-100 hover:bg-gray-200"
+            }`}
+          >
+            {showSideChart ? "📊 Specchietto deck" : "🏷️ Label fette"}
+          </button>
+          <button
             onClick={exportPng}
             className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded border border-gray-300 bg-gray-100 hover:bg-gray-200"
           >
@@ -144,20 +167,31 @@ export function HomeClient() {
           {/* foreground content */}
           <div className="relative h-full flex flex-col gap-6 p-8">
             <TournamentInfo data={tournamentData} isDark={isDark} />
-            <div className="flex-1 min-h-0">
-              <PieChart
-                {...chartData}
-                imageSearchOverrides={imageSearchOverrides}
-                isDark={isDark}
-              />
+            <div className="flex-1 min-h-0 relative">
+              <div className="h-full">
+                <PieChart
+                  {...chartData}
+                  imageSearchOverrides={imageSearchOverrides}
+                  isDark={isDark}
+                  showLabels={!showSideChart}
+                  extraPaddingLeft={showSideChart ? 380 : 0}
+                />
+              </div>
+              {showSideChart && (
+                <div className="absolute top-0 left-0 w-1/4">
+                  <DecksBarChart {...chartData} isDark={isDark} />
+                </div>
+              )}
             </div>
             <div className="flex gap-4 items-stretch w-[80%] mx-auto min-h-[15%] p-8">
               <div className="flex-[3] min-w-0">
                 <PlayersTop players={playersInfos.players} isDark={isDark} />
               </div>
-              <div className="flex-[1] min-w-0">
-                <TeamInfo isDark={isDark} />
-              </div>
+              {showTeamInfo && (
+                <div className="flex-[1] min-w-0">
+                  <TeamInfo isDark={isDark} />
+                </div>
+              )}
             </div>
           </div>
         </div>

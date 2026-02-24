@@ -19,9 +19,13 @@ export function PieChart({
   colors,
   imageSearchOverrides = {},
   isDark = false,
+  showLabels = true,
+  extraPaddingLeft = 0,
 }: DecksChartData & {
   imageSearchOverrides?: Record<string, string>;
   isDark?: boolean;
+  showLabels?: boolean;
+  extraPaddingLeft?: number;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const chartRef = useRef<Chart | null>(null);
@@ -29,6 +33,12 @@ export function PieChart({
 
   const isDarkRef = useRef(isDark);
   isDarkRef.current = isDark;
+
+  const showLabelsRef = useRef(showLabels);
+  showLabelsRef.current = showLabels;
+
+  const extraPaddingLeftRef = useRef(extraPaddingLeft);
+  extraPaddingLeftRef.current = extraPaddingLeft;
 
   const imageOptionsRef = useRef<Record<string, string[]>>({});
   const labelsRef = useRef<string[]>(labels);
@@ -167,6 +177,15 @@ export function PieChart({
     chartRef.current.update();
   }, [isDark]);
 
+  // Redraw chart when labels visibility changes
+  useEffect(() => {
+    try {
+      chartRef.current?.update();
+    } catch {
+      // chart may be mid-rebuild, skip
+    }
+  }, [showLabels]);
+
   // Auto-select first image when options load
   useEffect(() => {
     setSelectedImages(() => {
@@ -270,6 +289,7 @@ export function PieChart({
     const outsideLabelsPlugin: Plugin<"pie"> = {
       id: "outsideLabels",
       afterDatasetsDraw(chart) {
+        if (!showLabelsRef.current) return;
         const ctx = chart.ctx;
         const allData = data;
         const meta = chart.getDatasetMeta(0);
@@ -344,7 +364,7 @@ export function PieChart({
           ctx.fillText(lbl, textX, y2 - 2);
 
           ctx.font = "23px system-ui, sans-serif";
-          ctx.fillStyle = isDarkRef.current ? "#9ca3af" : "#6b7280";
+          ctx.fillStyle = isDarkRef.current ? "#d1d5db" : "#9ca3af";
           ctx.textBaseline = "top";
           ctx.fillText(`${value} (${pct}%)`, textX, y2 + 2);
 
@@ -373,7 +393,12 @@ export function PieChart({
         responsive: true,
         maintainAspectRatio: false,
         layout: {
-          padding: 90,
+          padding: {
+            top: 90,
+            right: 90,
+            bottom: 90,
+            left: 90 + extraPaddingLeft,
+          },
         },
         interaction: {
           mode: "nearest",
@@ -416,7 +441,7 @@ export function PieChart({
     return () => {
       chartRef.current?.destroy();
     };
-  }, [labels, data, colors]);
+  }, [labels, data, colors, extraPaddingLeft]);
 
   const handleSelect = (label: string, url: string) => {
     setSelectedImages((prev) => ({ ...prev, [label]: url }));
