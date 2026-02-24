@@ -499,9 +499,7 @@ export function PieChart({
           onClick={() =>
             fetchPage(label, (pickerPages[label]?.offset ?? 0) - 6)
           }
-          disabled={
-            !pickerPages[label]?.offset || pickerPages[label]?.loading
-          }
+          disabled={!pickerPages[label]?.offset || pickerPages[label]?.loading}
           className="flex h-8 w-6 flex-shrink-0 items-center justify-center rounded text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700 disabled:opacity-25"
           title="Precedenti"
         >
@@ -537,9 +535,7 @@ export function PieChart({
           onClick={() =>
             fetchPage(label, (pickerPages[label]?.offset ?? 0) + 6)
           }
-          disabled={
-            !pickerPages[label]?.hasMore || pickerPages[label]?.loading
-          }
+          disabled={!pickerPages[label]?.hasMore || pickerPages[label]?.loading}
           className="flex h-8 w-6 flex-shrink-0 items-center justify-center rounded text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700 disabled:opacity-25"
           title="Successivi"
         >
