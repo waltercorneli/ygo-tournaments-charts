@@ -11,6 +11,7 @@ import { TournamentInfo } from "./TournamentInfo";
 import { TournamentChart } from "./TournamentChart";
 import { TeamInfo } from "./TeamInfo";
 import { DecksBarChart } from "./DecksBarChart";
+import { AppFooter } from "./AppFooter";
 import { useDecksInfos, DeckEntry } from "../hooks/useDecksInfos";
 import { usePlayersInfos } from "../hooks/usePlayersInfos";
 import { useTournamentInfos } from "../hooks/useTournamentInfos";
@@ -124,138 +125,143 @@ export function HomeClient() {
   );
 
   return (
-    <main className="flex h-screen w-full gap-8 p-8 overflow-hidden">
-      {/* Left column */}
-      <div className="flex flex-col gap-8 overflow-y-auto overflow-x-hidden">
-        <PlayerChart {...playersInfos} />
+    <div className="flex flex-col w-full">
+      <main className="flex h-screen w-full gap-8 p-8 overflow-hidden">
+        {/* Left column */}
+        <div className="flex flex-col gap-8 overflow-y-auto overflow-x-hidden">
+          <PlayerChart {...playersInfos} />
 
-        <DecksChart
-          decks={decks}
-          onChange={handleDeckChange}
-          onAdd={addDeck}
-          onRemove={removeDeck}
-          onClear={clearDecks}
-        />
+          <DecksChart
+            decks={decks}
+            onChange={handleDeckChange}
+            onAdd={addDeck}
+            onRemove={removeDeck}
+            onClear={clearDecks}
+          />
 
-        <TournamentChart
-          data={tournamentData}
-          setField={setTournamentField}
-          setLogoUrl={setTournamentLogoUrl}
-        />
+          <TournamentChart
+            data={tournamentData}
+            setField={setTournamentField}
+            setLogoUrl={setTournamentLogoUrl}
+          />
 
-        <BackgroundImage onImageChange={handleBgChange} />
+          <BackgroundImage onImageChange={handleBgChange} />
 
-        <div className="flex flex-col gap-2 p-3">
-          <button
-            onClick={() => setIsDark((p) => !p)}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded border border-gray-300 bg-gray-100 hover:bg-gray-200 w-full justify-center"
-          >
-            {isDark ? "☀️ Modalità chiara" : "🌙 Modalità notte"}
-          </button>
-          <button
-            onClick={() => setShowTeamInfo((p) => !p)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs rounded border w-full justify-center ${
-              showTeamInfo
-                ? "border-blue-400 bg-blue-50 text-blue-700 hover:bg-blue-100"
-                : "border-gray-300 bg-gray-100 hover:bg-gray-200"
-            }`}
-          >
-            {showTeamInfo ? "🏠 Nascondi Team Info" : "🏠 Mostra Team Info"}
-          </button>
-          <button
-            onClick={() => setShowSideChart((p) => !p)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs rounded border w-full justify-center ${
-              showSideChart
-                ? "border-blue-400 bg-blue-50 text-blue-700 hover:bg-blue-100"
-                : "border-gray-300 bg-gray-100 hover:bg-gray-200"
-            }`}
-          >
-            {showSideChart ? "📊 Specchietto deck" : "🏷️ Label fette"}
-          </button>
-          <button
-            onClick={exportPng}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded border border-gray-300 bg-gray-100 hover:bg-gray-200 w-full justify-center"
-          >
-            ⬇ Esporta PNG
-          </button>
+          <div className="flex flex-col gap-2 p-3">
+            <button
+              onClick={() => setIsDark((p) => !p)}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded border border-gray-300 bg-gray-100 hover:bg-gray-200 w-full justify-center"
+            >
+              {isDark ? "☀️ Modalità chiara" : "🌙 Modalità notte"}
+            </button>
+            <button
+              onClick={() => setShowTeamInfo((p) => !p)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs rounded border w-full justify-center ${
+                showTeamInfo
+                  ? "border-blue-400 bg-blue-50 text-blue-700 hover:bg-blue-100"
+                  : "border-gray-300 bg-gray-100 hover:bg-gray-200"
+              }`}
+            >
+              {showTeamInfo ? "🏠 Nascondi Team Info" : "🏠 Mostra Team Info"}
+            </button>
+            <button
+              onClick={() => setShowSideChart((p) => !p)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs rounded border w-full justify-center ${
+                showSideChart
+                  ? "border-blue-400 bg-blue-50 text-blue-700 hover:bg-blue-100"
+                  : "border-gray-300 bg-gray-100 hover:bg-gray-200"
+              }`}
+            >
+              {showSideChart ? "📊 Specchietto deck" : "🏷️ Label fette"}
+            </button>
+            <button
+              onClick={exportPng}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded border border-gray-300 bg-gray-100 hover:bg-gray-200 w-full justify-center"
+            >
+              ⬇ Esporta PNG
+            </button>
+          </div>
         </div>
-      </div>
 
-      {/* Chart preview */}
-      <div className="flex-1 min-w-0 flex flex-col gap-8">
-        <div className="flex-1 min-h-0 flex items-center justify-center">
-          <div
-            ref={containerRef}
-            className="aspect-square h-full relative overflow-hidden rounded-xl"
-          >
-            {/* Inner div fixed at EXPORT_SIZE × EXPORT_SIZE, then CSS-scaled to fit.
+        {/* Chart preview */}
+        <div className="flex-1 min-w-0 flex flex-col gap-8">
+          <div className="flex-1 min-h-0 flex items-center justify-center">
+            <div
+              ref={containerRef}
+              className="aspect-square h-full relative overflow-hidden rounded-xl"
+            >
+              {/* Inner div fixed at EXPORT_SIZE × EXPORT_SIZE, then CSS-scaled to fit.
               Layout size stays 1080px so html-to-image captures exactly 1080×1080.
               Chart.js always renders at 1080px → fonts/padding stay proportional. */}
-            <div
-              ref={exportRef}
-              style={{
-                position: "absolute",
-                top: 0,
-                left: 0,
-                width: EXPORT_SIZE,
-                height: EXPORT_SIZE,
-                transform: `scale(${scale})`,
-                transformOrigin: "top left",
-              }}
-              className={`rounded-xl overflow-hidden ${isDark ? "bg-gray-900" : "bg-white"}`}
-            >
-              {/* faded background */}
-              {bgUrl && (
-                <img
-                  src={bgUrl}
-                  alt=""
-                  aria-hidden
-                  className="pointer-events-none absolute inset-0 h-full w-full object-cover select-none"
-                  style={{ opacity: bgOpacity / 100 }}
-                />
-              )}
+              <div
+                ref={exportRef}
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  width: EXPORT_SIZE,
+                  height: EXPORT_SIZE,
+                  transform: `scale(${scale})`,
+                  transformOrigin: "top left",
+                }}
+                className={`rounded-xl overflow-hidden ${isDark ? "bg-gray-900" : "bg-white"}`}
+              >
+                {/* faded background */}
+                {bgUrl && (
+                  <img
+                    src={bgUrl}
+                    alt=""
+                    aria-hidden
+                    className="pointer-events-none absolute inset-0 h-full w-full object-cover select-none"
+                    style={{ opacity: bgOpacity / 100 }}
+                  />
+                )}
 
-              {/* foreground content */}
-              <div className="relative h-full flex flex-col gap-6 p-8">
-                <TournamentInfo
-                  data={tournamentData}
-                  participants={decks.reduce((sum, d) => sum + d.qty, 0)}
-                  isDark={isDark}
-                />
-                <div className="flex-1 min-h-0 relative">
-                  <div className="h-full">
-                    <PieChart
-                      {...chartData}
-                      imageSearchOverrides={imageSearchOverrides}
-                      isDark={isDark}
-                      showLabels={!showSideChart}
-                      extraPaddingLeft={showSideChart ? 850 : 0}
-                    />
-                  </div>
-                  {showSideChart && (
-                    <div className="absolute top-0 left-0 w-1/4">
-                      <DecksBarChart {...chartData} isDark={isDark} />
+                {/* foreground content */}
+                <div className="relative h-full flex flex-col gap-6 p-8">
+                  <TournamentInfo
+                    data={tournamentData}
+                    participants={decks.reduce((sum, d) => sum + d.qty, 0)}
+                    isDark={isDark}
+                  />
+                  <div className="flex-1 min-h-0 relative">
+                    <div className="h-full">
+                      <PieChart
+                        {...chartData}
+                        imageSearchOverrides={imageSearchOverrides}
+                        isDark={isDark}
+                        showLabels={!showSideChart}
+                        extraPaddingLeft={showSideChart ? 850 : 0}
+                      />
                     </div>
-                  )}
-                </div>
-                <div className="flex gap-4 items-stretch w-[90%] mx-auto min-h-[15%] p-8">
-                  <div className="flex-[6] min-w-0">
-                    <PlayersTop
-                      players={playersInfos.players}
-                      isDark={isDark}
-                    />
+                    {showSideChart && (
+                      <div className="absolute top-0 left-0 w-1/4">
+                        <DecksBarChart {...chartData} isDark={isDark} />
+                      </div>
+                    )}
                   </div>
-                  {showTeamInfo && (
-                    <div className="flex-[1] min-w-0">
-                      <TeamInfo isDark={isDark} />
+                  <div className="flex gap-4 items-stretch w-[90%] mx-auto min-h-[15%] p-8">
+                    <div className="flex-[6] min-w-0">
+                      <PlayersTop
+                        players={playersInfos.players}
+                        isDark={isDark}
+                      />
                     </div>
-                  )}
+                    {showTeamInfo && (
+                      <div className="flex-[1] min-w-0">
+                        <TeamInfo isDark={isDark} />
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
-    </main>
+      </main>
+
+      {/* Footer — visible only on scroll */}
+      <AppFooter />
+    </div>
   );
 }
