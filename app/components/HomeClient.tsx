@@ -121,8 +121,8 @@ export function HomeClient() {
   );
 
   return (
-    <main className="flex min-h-screen w-full gap-8 p-8">
-      <div className="flex flex-col gap-8">
+    <main className="flex h-screen w-full gap-8 p-8 overflow-hidden">
+      <div className="flex flex-col gap-8 overflow-y-auto">
         <PlayerChart {...playersInfos} />
 
         <DecksChart
@@ -179,69 +179,74 @@ export function HomeClient() {
         </div>
 
         {/* Outer responsive wrapper — sizes the visible area */}
-        <div
-          ref={containerRef}
-          className="relative w-full aspect-square overflow-hidden rounded-xl"
-        >
-          {/* Inner div fixed at EXPORT_SIZE × EXPORT_SIZE, then CSS-scaled to fit.
+        <div className="flex-1 min-h-0 flex items-center justify-center">
+          <div
+            ref={containerRef}
+            className="aspect-square h-full relative overflow-hidden rounded-xl"
+          >
+            {/* Inner div fixed at EXPORT_SIZE × EXPORT_SIZE, then CSS-scaled to fit.
               Layout size stays 1080px so html-to-image captures exactly 1080×1080.
               Chart.js always renders at 1080px → fonts/padding stay proportional. */}
-          <div
-            ref={exportRef}
-            style={{
-              position: "absolute",
-              top: 0,
-              left: 0,
-              width: EXPORT_SIZE,
-              height: EXPORT_SIZE,
-              transform: `scale(${scale})`,
-              transformOrigin: "top left",
-            }}
-            className={`rounded-xl overflow-hidden ${isDark ? "bg-gray-900" : "bg-white"}`}
-          >
-            {/* faded background */}
-            {bgUrl && (
-              <img
-                src={bgUrl}
-                alt=""
-                aria-hidden
-                className="pointer-events-none absolute inset-0 h-full w-full object-cover select-none"
-                style={{ opacity: bgOpacity / 100 }}
-              />
-            )}
+            <div
+              ref={exportRef}
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                width: EXPORT_SIZE,
+                height: EXPORT_SIZE,
+                transform: `scale(${scale})`,
+                transformOrigin: "top left",
+              }}
+              className={`rounded-xl overflow-hidden ${isDark ? "bg-gray-900" : "bg-white"}`}
+            >
+              {/* faded background */}
+              {bgUrl && (
+                <img
+                  src={bgUrl}
+                  alt=""
+                  aria-hidden
+                  className="pointer-events-none absolute inset-0 h-full w-full object-cover select-none"
+                  style={{ opacity: bgOpacity / 100 }}
+                />
+              )}
 
-            {/* foreground content */}
-            <div className="relative h-full flex flex-col gap-6 p-8">
-              <TournamentInfo
-                data={tournamentData}
-                participants={decks.reduce((sum, d) => sum + d.qty, 0)}
-                isDark={isDark}
-              />
-              <div className="flex-1 min-h-0 relative">
-                <div className="h-full">
-                  <PieChart
-                    {...chartData}
-                    imageSearchOverrides={imageSearchOverrides}
-                    isDark={isDark}
-                    showLabels={!showSideChart}
-                    extraPaddingLeft={showSideChart ? 380 : 0}
-                  />
-                </div>
-                {showSideChart && (
-                  <div className="absolute top-0 left-0 w-1/4">
-                    <DecksBarChart {...chartData} isDark={isDark} />
+              {/* foreground content */}
+              <div className="relative h-full flex flex-col gap-6 p-8">
+                <TournamentInfo
+                  data={tournamentData}
+                  participants={decks.reduce((sum, d) => sum + d.qty, 0)}
+                  isDark={isDark}
+                />
+                <div className="flex-1 min-h-0 relative">
+                  <div className="h-full">
+                    <PieChart
+                      {...chartData}
+                      imageSearchOverrides={imageSearchOverrides}
+                      isDark={isDark}
+                      showLabels={!showSideChart}
+                      extraPaddingLeft={showSideChart ? 380 : 0}
+                    />
                   </div>
-                )}
-              </div>
-              <div className="flex gap-4 items-stretch w-[80%] mx-auto min-h-[15%] p-8">
-                <div className="flex-[3] min-w-0">
-                  <PlayersTop players={playersInfos.players} isDark={isDark} />
+                  {showSideChart && (
+                    <div className="absolute top-0 left-0 w-1/4">
+                      <DecksBarChart {...chartData} isDark={isDark} />
+                    </div>
+                  )}
                 </div>
-                {showTeamInfo && (
-                  <div className="flex-[1] min-w-0">
-                    <TeamInfo isDark={isDark} />
+                <div className="flex gap-4 items-stretch w-[80%] mx-auto min-h-[15%] p-8">
+                  <div className="flex-[3] min-w-0">
+                    <PlayersTop
+                      players={playersInfos.players}
+                      isDark={isDark}
+                    />
                   </div>
-                )}
+                  {showTeamInfo && (
+                    <div className="flex-[1] min-w-0">
+                      <TeamInfo isDark={isDark} />
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
