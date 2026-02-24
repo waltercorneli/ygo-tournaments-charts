@@ -86,12 +86,27 @@ export function HomeClient() {
 
   const exportPng = async () => {
     if (!exportRef.current) return;
-    // Inner div is 1080×1080 in layout; pixelRatio 3 → 3240×3240 output
-    const dataUrl = await toPng(exportRef.current, { pixelRatio: 3 });
-    const link = document.createElement("a");
-    link.download = `${tournamentData.name || "torneo"}.png`;
-    link.href = dataUrl;
-    link.click();
+    const el = exportRef.current;
+    // Temporarily remove the CSS scale so html-to-image captures the element
+    // at its natural 1080×1080 layout size regardless of screen width.
+    // Without this, getBoundingClientRect() returns the scaled visual size,
+    // causing a mismatch between canvas dimensions and rendered content.
+    const prevTransform = el.style.transform;
+    el.style.transform = "scale(1)";
+    try {
+      // pixelRatio 3 → 3240×3240 output
+      const dataUrl = await toPng(el, {
+        pixelRatio: 3,
+        width: EXPORT_SIZE,
+        height: EXPORT_SIZE,
+      });
+      const link = document.createElement("a");
+      link.download = `${tournamentData.name || "torneo"}.png`;
+      link.href = dataUrl;
+      link.click();
+    } finally {
+      el.style.transform = prevTransform;
+    }
   };
 
   // Build imageSearch overrides map: label → imageSearch term
