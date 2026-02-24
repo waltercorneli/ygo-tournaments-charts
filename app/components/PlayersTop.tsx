@@ -538,12 +538,13 @@ export function PlayersTop({
 
   if (filled.length === 0) return null;
 
-  const cols = Math.ceil(filled.length / 2);
+  const cols = Math.min(2, filled.length);
+  const rowsPerCol = Math.ceil(filled.length / cols);
 
   const ordered = Array.from({ length: players.length }, (_, i) => {
     const col = i % cols;
     const row = Math.floor(i / cols);
-    const origIndex = col * 2 + row;
+    const origIndex = col * rowsPerCol + row;
     return { player: players[origIndex] ?? players[i], origIndex };
   });
 
@@ -569,7 +570,7 @@ export function PlayersTop({
               className="grid items-center gap-x-2 gap-y-2 flex-1 min-w-0"
               style={{
                 gridTemplateColumns: "auto auto auto 1fr auto auto",
-                gridTemplateRows: "repeat(2, 1fr)",
+                gridTemplateRows: `repeat(${rowsPerCol}, 1fr)`,
               }}
             >
               {ordered
