@@ -95,10 +95,13 @@ export function HomeClient() {
     el.style.transform = "scale(1)";
     try {
       // pixelRatio 3 → 3240×3240 output
+      // skipFonts: true prevents html-to-image from iterating CSS font rules,
+      // which crashes in Firefox because some rules expose `font` as undefined.
       const dataUrl = await toPng(el, {
         pixelRatio: 3,
         width: EXPORT_SIZE,
         height: EXPORT_SIZE,
+        skipFonts: true,
       });
       const link = document.createElement("a");
       link.download = `${tournamentData.name || "torneo"}.png`;
