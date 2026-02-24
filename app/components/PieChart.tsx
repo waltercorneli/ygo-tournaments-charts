@@ -629,6 +629,13 @@ export function PieChart({
 const PAD_SIZE = 80;
 const PAD_MAX_OFFSET = 400;
 
+type DragOrigin = {
+  startX: number;
+  startY: number;
+  initOffX: number;
+  initOffY: number;
+};
+
 function DragPad({
   offsetX,
   offsetY,
@@ -639,28 +646,47 @@ function DragPad({
   onChange: (x: number, y: number) => void;
 }) {
   const half = PAD_SIZE / 2;
+  const dragOrigin = React.useRef<DragOrigin | null>(null);
 
   // Map offset [-MAX, MAX] → px position [0, PAD_SIZE]
   const dotX = (offsetX / PAD_MAX_OFFSET) * half + half;
   const dotY = (offsetY / PAD_MAX_OFFSET) * half + half;
 
+  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    e.currentTarget.setPointerCapture(e.pointerId);
+    dragOrigin.current = {
+      startX: e.clientX,
+      startY: e.clientY,
+      initOffX: offsetX,
+      initOffY: offsetY,
+    };
+  };
+
   const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!e.currentTarget.hasPointerCapture(e.pointerId)) return;
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = Math.max(0, Math.min(PAD_SIZE, e.clientX - rect.left));
-    const y = Math.max(0, Math.min(PAD_SIZE, e.clientY - rect.top));
+    if (!dragOrigin.current) return;
+    const { startX, startY, initOffX, initOffY } = dragOrigin.current;
+    const dx = e.clientX - startX;
+    const dy = e.clientY - startY;
+    const clamp = (v: number) =>
+      Math.max(-PAD_MAX_OFFSET, Math.min(PAD_MAX_OFFSET, v));
     onChange(
-      Math.round(((x - half) / half) * PAD_MAX_OFFSET),
-      Math.round(((y - half) / half) * PAD_MAX_OFFSET),
+      Math.round(clamp(initOffX + (dx / half) * PAD_MAX_OFFSET)),
+      Math.round(clamp(initOffY + (dy / half) * PAD_MAX_OFFSET)),
     );
+  };
+
+  const handlePointerUp = () => {
+    dragOrigin.current = null;
   };
 
   return (
     <div
       className="relative cursor-crosshair select-none overflow-hidden rounded-lg border border-gray-200 bg-gray-100"
       style={{ width: PAD_SIZE, height: PAD_SIZE }}
-      onPointerDown={(e) => e.currentTarget.setPointerCapture(e.pointerId)}
+      onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
     >
       {/* crosshair */}
       <div className="pointer-events-none absolute inset-0 flex items-center">
