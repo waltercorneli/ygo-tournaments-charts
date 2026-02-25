@@ -162,7 +162,7 @@ function ArtworkBox({
   return (
     <div
       className="relative flex-shrink-0 overflow-hidden rounded cursor-pointer hover:ring-2 hover:ring-blue-400 transition-shadow"
-      style={{ width: 120, height: 40 }}
+      style={{ width: 120, height: 30 }}
       onClick={onClick}
       title="Clicca per cambiare immagine"
     >
@@ -198,7 +198,7 @@ function ArtworkBox({
         <span
           className="block text-center leading-tight text-white font-bold"
           style={{
-            fontSize: "0.62rem",
+            fontSize: "0.85rem",
             WebkitTextStroke: "0.3px rgba(0,0,0,0.8)",
             textShadow: "0 0 3px rgba(0,0,0,0.9)",
             overflowWrap: "break-word",
