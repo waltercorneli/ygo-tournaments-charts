@@ -137,13 +137,15 @@ export async function exportPng({
       requestAnimationFrame(() => requestAnimationFrame(() => r())),
     );
 
-    const elRect = el.getBoundingClientRect();
     const PR = 2; // 2× is enough for mobile and stays within WebKit canvas limits
 
     // Background image (aria-hidden) is handled separately so it can be
     // composited at the right z-level (above bg-color, below text/charts).
     let bgLayerData: BgLayer | null = null;
-    const layers: Layer[] = [];
+    // layersBelow: drawn BEFORE basePng (artwork images that have a text overlay on top).
+    // layersAbove: drawn AFTER  basePng (chart canvas, logos, etc.).
+    const layersBelow: Layer[] = [];
+    const layersAbove: Layer[] = [];
     const hiddenEls: Array<{ el: HTMLElement; vis: string }> = [];
     const hideEl = (e: HTMLElement) => {
       hiddenEls.push({ el: e, vis: e.style.visibility });
@@ -156,27 +158,22 @@ export async function exportPng({
     try {
       setExportStatus("🖼️ Snapshot grafico…");
 
-      // Collect canvas + img layers in DOM order so the background image
-      // (which appears before the canvas in the DOM) is composited first.
+      // Capture elRect and ALL child rects in the same synchronous block so
+      // every coordinate is measured against the same viewport snapshot.
+      const elRect = el.getBoundingClientRect();
+
       for (const node of Array.from(
         el.querySelectorAll("canvas, img"),
       ) as HTMLElement[]) {
+        // --- sync: read rect immediately, NO await yet ---
         const r = node.getBoundingClientRect();
         if (r.width < 1 || r.height < 1) continue;
 
-        let dataUrl = "";
-
         if (node instanceof HTMLCanvasElement) {
-          try {
-            dataUrl = chartSnapshotRef.current
-              ? await chartSnapshotRef.current()
-              : node.toDataURL("image/png");
-          } catch {
-            /* tainted — skip */
-          }
-          if (!dataUrl || dataUrl.length < 200) continue;
-          layers.push({
-            dataUrl,
+          // Canvas dataUrl is fetched after the sync rect phase (see below).
+          // Push a placeholder with the rect; dataUrl filled in after the loop.
+          layersAbove.push({
+            dataUrl: "__canvas__",
             objectFit: "fill",
             x: r.left - elRect.left,
             y: r.top - elRect.top,
@@ -188,47 +185,120 @@ export async function exportPng({
           const imgEl = node as HTMLImageElement;
           const src = imgEl.getAttribute("src") ?? "";
           if (!src) continue;
-          dataUrl = src.startsWith("data:")
-            ? src
-            : ((await srcToDataUrl(src)) ?? "");
-          if (!dataUrl) continue;
 
-          // Background image is the aria-hidden decorative img — treat it
-          // separately so it composites BEHIND text but ABOVE the solid
-          // background colour (and with the correct CSS opacity applied).
-          if (imgEl.getAttribute("aria-hidden") === "true") {
-            const opacity = parseFloat(getComputedStyle(imgEl).opacity ?? "1");
-            bgLayerData = { dataUrl, opacity: isNaN(opacity) ? 1 : opacity };
-            hideEl(imgEl);
-            continue;
-          }
+          const isAriaHidden = imgEl.getAttribute("aria-hidden") === "true";
+          const isBelowClip =
+            (imgEl as HTMLImageElement).dataset.exportBelow === "true";
+          const objectFit = getComputedStyle(imgEl).objectFit || "fill";
+          const opacity = isAriaHidden
+            ? parseFloat(getComputedStyle(imgEl).opacity ?? "1")
+            : 1;
+          const clip = isAriaHidden ? null : findClipAncestor(imgEl, el);
 
-          const clip = findClipAncestor(imgEl, el);
-          layers.push({
-            dataUrl,
-            objectFit: getComputedStyle(imgEl).objectFit || "fill",
-            x: r.left - elRect.left,
-            y: r.top - elRect.top,
-            w: r.width,
-            h: r.height,
-            ...(clip
-              ? {
-                  clipX: clip.r.left - elRect.left,
-                  clipY: clip.r.top - elRect.top,
-                  clipW: clip.r.width,
-                  clipH: clip.r.height,
-                  clipR: clip.radius,
-                }
-              : {}),
-          });
+          // Store everything needed to build the layer after the sync phase.
+          // We will resolve the dataUrl in the async section below.
+          (imgEl as HTMLImageElement & { _exportMeta?: unknown })._exportMeta =
+            {
+              r,
+              src,
+              isAriaHidden,
+              isBelowClip,
+              objectFit,
+              opacity: isNaN(opacity) ? 1 : opacity,
+              clip,
+            };
           hideEl(imgEl);
         }
       }
 
-      // 2. Capture the DOM (text, UI elements) with all images hidden.
-      // Temporarily clear the element's inline background so the toPng output
-      // has a transparent backing — the solid colour will be filled manually
-      // on the canvas, and the bg image is composited on top of it.
+      // Hide placeholder background divs (data-export-hide) BEFORE toPng.
+      for (const node of Array.from(
+        el.querySelectorAll<HTMLElement>("[data-export-hide]"),
+      )) {
+        hideEl(node);
+      }
+
+      // --- async: resolve canvas snapshots ---
+      for (const layer of layersAbove) {
+        if (layer.dataUrl !== "__canvas__") continue;
+        try {
+          layer.dataUrl = chartSnapshotRef.current
+            ? await chartSnapshotRef.current()
+            : ""; // canvas node already replaced above; this is a fallback
+        } catch {
+          /* skip */
+        }
+        if (!layer.dataUrl || layer.dataUrl.length < 200) layer.dataUrl = "";
+      }
+      // Drop any canvas layer we failed to capture.
+      const validLayersAbove = layersAbove.filter(
+        (l) => l.dataUrl !== "" && l.dataUrl !== "__canvas__",
+      );
+      layersAbove.length = 0;
+      validLayersAbove.forEach((l) => layersAbove.push(l));
+
+      // --- async: resolve image dataUrls ---
+      for (const imgEl of Array.from(
+        el.querySelectorAll<HTMLImageElement & { _exportMeta?: unknown }>(
+          "img[src]",
+        ),
+      )) {
+        const meta = (
+          imgEl as HTMLImageElement & {
+            _exportMeta?: {
+              r: DOMRect;
+              src: string;
+              isAriaHidden: boolean;
+              isBelowClip: boolean;
+              objectFit: string;
+              opacity: number;
+              clip: { r: DOMRect; radius: number } | null;
+            };
+          }
+        )._exportMeta;
+        if (!meta) continue;
+        delete (imgEl as HTMLImageElement & { _exportMeta?: unknown })
+          ._exportMeta;
+
+        const { r, src, isAriaHidden, isBelowClip, objectFit, opacity, clip } =
+          meta;
+
+        const dataUrl = src.startsWith("data:")
+          ? src
+          : ((await srcToDataUrl(src)) ?? "");
+        if (!dataUrl) continue;
+
+        if (isAriaHidden) {
+          bgLayerData = { dataUrl, opacity };
+          continue;
+        }
+
+        const layerData: Layer = {
+          dataUrl,
+          objectFit,
+          x: r.left - elRect.left,
+          y: r.top - elRect.top,
+          w: r.width,
+          h: r.height,
+          ...(clip
+            ? {
+                clipX: clip.r.left - elRect.left,
+                clipY: clip.r.top - elRect.top,
+                clipW: clip.r.width,
+                clipH: clip.r.height,
+                clipR: clip.radius,
+              }
+            : {}),
+        };
+
+        if (isBelowClip) {
+          layersBelow.push(layerData);
+        } else {
+          layersAbove.push(layerData);
+        }
+      }
+
+      // 2. Capture the visible DOM (text, gradients, UI) with all images hidden.
       setExportStatus("✏️ Generazione base…");
       const elBgColor = getComputedStyle(el).backgroundColor;
       prevElBg = el.style.backgroundColor;
@@ -249,7 +319,7 @@ export async function exportPng({
       finalCanvas.height = EXPORT_SIZE * PR;
       const ctx = finalCanvas.getContext("2d")!;
 
-      // Step A: solid background colour (replaces the Tailwind bg-* class)
+      // Step A: solid background colour
       ctx.fillStyle = elBgColor;
       ctx.fillRect(0, 0, finalCanvas.width, finalCanvas.height);
 
@@ -261,7 +331,74 @@ export async function exportPng({
         ctx.globalAlpha = 1;
       }
 
-      // Step C: text / UI elements (transparent base layer goes on top of bg image)
+      // Helper: draw a Layer onto ctx respecting clip + objectFit.
+      const drawLayer = async (layer: Layer) => {
+        const img = await loadImg(layer.dataUrl);
+        const dx = layer.x * PR;
+        const dy = layer.y * PR;
+        const dw = layer.w * PR;
+        const dh = layer.h * PR;
+
+        ctx.save();
+
+        if (
+          layer.clipX !== undefined &&
+          layer.clipY !== undefined &&
+          layer.clipW !== undefined &&
+          layer.clipH !== undefined &&
+          layer.clipR !== undefined
+        ) {
+          const cx = layer.clipX * PR;
+          const cy = layer.clipY * PR;
+          const cw = layer.clipW * PR;
+          const ch = layer.clipH * PR;
+          const cr = layer.clipR * PR;
+          roundRectPath(ctx, cx, cy, cw, ch, cr);
+          ctx.fillStyle = "#000000";
+          ctx.fill();
+          roundRectPath(ctx, cx, cy, cw, ch, cr);
+          ctx.clip();
+        }
+
+        if (layer.objectFit === "cover") {
+          const scale = Math.max(dw / img.naturalWidth, dh / img.naturalHeight);
+          const sw = dw / scale;
+          const sh = dh / scale;
+          const sx = (img.naturalWidth - sw) / 2;
+          const sy = (img.naturalHeight - sh) / 2;
+          ctx.drawImage(img, sx, sy, sw, sh, dx, dy, dw, dh);
+        } else if (layer.objectFit === "contain") {
+          const scale = Math.min(dw / img.naturalWidth, dh / img.naturalHeight);
+          const sw = img.naturalWidth * scale;
+          const sh = img.naturalHeight * scale;
+          ctx.drawImage(
+            img,
+            0,
+            0,
+            img.naturalWidth,
+            img.naturalHeight,
+            dx + (dw - sw) / 2,
+            dy + (dh - sh) / 2,
+            sw,
+            sh,
+          );
+        } else {
+          ctx.drawImage(img, dx, dy, dw, dh);
+        }
+
+        ctx.restore();
+      };
+
+      // Step C: artwork images beneath text overlays (drawn BEFORE basePng)
+      for (const layer of layersBelow) {
+        try {
+          await drawLayer(layer);
+        } catch {
+          /* skip */
+        }
+      }
+
+      // Step D: text / UI elements
       ctx.drawImage(
         await loadImg(basePng),
         0,
@@ -270,82 +407,17 @@ export async function exportPng({
         finalCanvas.height,
       );
 
-      // Step D: canvas snapshots + logo images in DOM order (on top of text)
-      for (const layer of layers) {
+      // Step E: canvas snapshot + logos (drawn AFTER basePng, on top of text)
+      for (const layer of layersAbove) {
         try {
-          const img = await loadImg(layer.dataUrl);
-          const dx = layer.x * PR;
-          const dy = layer.y * PR;
-          const dw = layer.w * PR;
-          const dh = layer.h * PR;
-
-          ctx.save();
-
-          // Apply clip from ancestor overflow:hidden + border-radius (e.g. rounded logo)
-          if (
-            layer.clipX !== undefined &&
-            layer.clipY !== undefined &&
-            layer.clipW !== undefined &&
-            layer.clipH !== undefined &&
-            layer.clipR !== undefined
-          ) {
-            const cx = layer.clipX * PR;
-            const cy = layer.clipY * PR;
-            const cw = layer.clipW * PR;
-            const ch = layer.clipH * PR;
-            const cr = layer.clipR * PR;
-            roundRectPath(ctx, cx, cy, cw, ch, cr);
-            // Fill with black first so no white bleeds through from the base layer.
-            ctx.fillStyle = "#000000";
-            ctx.fill();
-            roundRectPath(ctx, cx, cy, cw, ch, cr);
-            ctx.clip();
-          }
-
-          if (layer.objectFit === "cover") {
-            const scale = Math.max(
-              dw / img.naturalWidth,
-              dh / img.naturalHeight,
-            );
-            const sw = dw / scale;
-            const sh = dh / scale;
-            const sx = (img.naturalWidth - sw) / 2;
-            const sy = (img.naturalHeight - sh) / 2;
-            ctx.drawImage(img, sx, sy, sw, sh, dx, dy, dw, dh);
-          } else if (layer.objectFit === "contain") {
-            const scale = Math.min(
-              dw / img.naturalWidth,
-              dh / img.naturalHeight,
-            );
-            const sw = img.naturalWidth * scale;
-            const sh = img.naturalHeight * scale;
-            ctx.drawImage(
-              img,
-              0,
-              0,
-              img.naturalWidth,
-              img.naturalHeight,
-              dx + (dw - sw) / 2,
-              dy + (dh - sh) / 2,
-              sw,
-              sh,
-            );
-          } else {
-            ctx.drawImage(img, dx, dy, dw, dh);
-          }
-
-          ctx.restore();
+          await drawLayer(layer);
         } catch {
-          /* skip any layer that fails to load */
+          /* skip */
         }
       }
 
       setExportStatus("✅ Download in corso…");
-      const finalDataUrl = finalCanvas.toDataURL("image/png");
-
-      // Show the image in the in-page modal — works on every iOS browser.
-      // The user long-presses the image to save it.
-      setIosImageUrl(finalDataUrl);
+      setIosImageUrl(finalCanvas.toDataURL("image/png"));
     } catch (err) {
       throw err;
     } finally {

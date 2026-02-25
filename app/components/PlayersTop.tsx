@@ -168,12 +168,14 @@ function ArtworkBox({
     >
       <div
         className={`absolute inset-0 ${isDark ? "bg-gray-700" : "bg-gray-200"}`}
+        data-export-hide="true"
       />
       {url && (
         <img
           src={url}
           alt={label}
           crossOrigin="anonymous"
+          data-export-below="true"
           style={{
             position: "absolute",
             left: `calc(50% + ${ox}px)`,
