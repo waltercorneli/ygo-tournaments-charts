@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { PlayerChart } from "./PlayerChart";
 import { EXPORT_SIZE, exportPng } from "../utils/exportPng";
 import { buildImageSearchOverrides } from "../utils/deckUtils";
@@ -79,6 +80,11 @@ export function HomeClient() {
   const [progressivePctFont, setProgressivePctFont] = useState(true);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [exportStatus, setExportStatus] = useState<string | null>(null);
+
+  // Tracks whether any mobile picker (PieChart or PlayersTop) is open.
+  const [piePickerOpen, setPiePickerOpen] = useState(false);
+  const [playersPickerOpen, setPlayersPickerOpen] = useState(false);
+  const anyPickerOpen = piePickerOpen || playersPickerOpen;
   // iOS: show the generated image in a full-screen modal so the user can
   // long-press to save it (window.open / link.click are unreliable on iOS).
   const [iosImageUrl, setIosImageUrl] = useState<string | null>(null);
@@ -327,6 +333,7 @@ export function HomeClient() {
                         onImagesChange={setDeckImages}
                         onImageSettingsChange={setDeckImageSettings}
                         snapshotRef={chartSnapshotRef}
+                        onPickerChange={setPiePickerOpen}
                       />
                     </div>
                     {showSideChart && (
@@ -350,6 +357,7 @@ export function HomeClient() {
                         panelOpacity={panelOpacity}
                         sliceImages={deckImages}
                         imageSettings={deckImageSettings}
+                        onPickerChange={setPlayersPickerOpen}
                       />
                     </div>
                     {showTeamInfo && (
@@ -371,6 +379,18 @@ export function HomeClient() {
 
       {/* Footer — visible only on scroll */}
       <AppFooter />
+
+      {/* Single mobile hint banner — hidden as soon as any picker opens */}
+      {!anyPickerOpen &&
+        typeof document !== "undefined" &&
+        createPortal(
+          <div className="md:hidden fixed bottom-0 left-0 right-0 z-[20] border-t border-gray-200 bg-white shadow-2xl">
+            <p className="px-4 py-3 text-center text-xs text-gray-400">
+              Tocca una fetta o un&apos;immagine del mazzo per cambiarla
+            </p>
+          </div>,
+          document.body,
+        )}
 
       {/* Export progress overlay */}
       {exportStatus !== null && (

@@ -162,7 +162,7 @@ function ArtworkBox({
   return (
     <div
       className="relative flex-shrink-0 overflow-hidden rounded cursor-pointer hover:ring-2 hover:ring-blue-400 transition-shadow"
-      style={{ width: 100, height: 30 }}
+      style={{ width: 120, height: 40 }}
       onClick={onClick}
       title="Clicca per cambiare immagine"
     >
@@ -222,6 +222,8 @@ interface PlayersTopProps {
   sliceImages?: Record<string, string>;
   /** Default settings from PieChart (used only if no local override yet) */
   imageSettings?: Record<string, ImageSettings>;
+  /** Called whenever the mobile picker opens or closes. */
+  onPickerChange?: (isOpen: boolean) => void;
 }
 
 type PickerState = { label: string; x: number; y: number };
@@ -233,6 +235,7 @@ export function PlayersTop({
   panelOpacity = 60,
   sliceImages = {},
   imageSettings: pieSettings = {},
+  onPickerChange,
 }: PlayersTopProps) {
   const filled = players.filter((p) => p.name.trim() !== "");
   const deckKeys = [
@@ -260,6 +263,13 @@ export function PlayersTop({
   const pickerRef = useRef<HTMLDivElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const uploadLabelRef = useRef<string | null>(null);
+
+  // Notify parent when picker opens/closes
+  const onPickerChangeRef = useRef(onPickerChange);
+  onPickerChangeRef.current = onPickerChange;
+  useEffect(() => {
+    onPickerChangeRef.current?.(picker !== null);
+  }, [picker]);
 
   // Detect small screens (< 768 px, i.e. below the Tailwind "md" breakpoint)
   const [isMobile, setIsMobile] = useState(false);
@@ -645,21 +655,16 @@ export function PlayersTop({
           z-[20] keeps it below the drawer (z-40) and backdrop (z-30)
           so opening the menu naturally covers it. */}
       {isMobile &&
+        picker &&
         typeof document !== "undefined" &&
         createPortal(
           <div
             ref={pickerRef}
             className="fixed bottom-0 left-0 right-0 z-[20] border-t border-gray-200 bg-white shadow-2xl"
           >
-            {picker ? (
-              <div className="max-h-[50vh] overflow-y-auto">
-                {renderPickerInner(picker.label)}
-              </div>
-            ) : (
-              <p className="px-4 py-3 text-center text-xs text-gray-400">
-                Tocca un&apos;immagine del mazzo per cambiarla
-              </p>
-            )}
+            <div className="max-h-[50vh] overflow-y-auto">
+              {renderPickerInner(picker.label)}
+            </div>
           </div>,
           document.body,
         )}

@@ -28,6 +28,7 @@ export function PieChart({
   onImagesChange,
   onImageSettingsChange,
   snapshotRef,
+  onPickerChange,
 }: DecksChartData & {
   imageSearchOverrides?: Record<string, string>;
   isDark?: boolean;
@@ -46,6 +47,8 @@ export function PieChart({
   /** Call this to get a canvas data URL that is guaranteed to have all
    *  artwork images fully painted (waits for loading if needed). */
   snapshotRef?: React.RefObject<(() => Promise<string>) | null>;
+  /** Called whenever the mobile picker opens or closes. */
+  onPickerChange?: (isOpen: boolean) => void;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const chartRef = useRef<Chart | null>(null);
@@ -84,6 +87,13 @@ export function PieChart({
 
   const pickerRef = useRef<PickerState | null>(null);
   pickerRef.current = picker;
+
+  // Notify parent when picker opens/closes
+  const onPickerChangeRef = useRef(onPickerChange);
+  onPickerChangeRef.current = onPickerChange;
+  useEffect(() => {
+    onPickerChangeRef.current?.(picker !== null);
+  }, [picker]);
 
   const [imageSettings, setImageSettings] = useState<
     Record<string, ImageSettings>
@@ -622,28 +632,25 @@ export function PieChart({
           if (elements.length > 0) {
             const idx = elements[0].index;
             const label = labelsRef.current[idx];
-            const opts = imageOptionsRef.current[label];
-            if (opts && opts.length > 0) {
-              const native = event.native as MouseEvent;
-              const rect = canvas.getBoundingClientRect();
-              // rect gives visual (CSS-scaled) dimensions; canvas.offsetWidth is the
-              // logical layout size (1080px space). Dividing by cssScale converts the
-              // click position into logical coordinates so the picker appears in the
-              // correct spot regardless of the CSS transform scale applied by HomeClient.
-              const cssScale = rect.width / canvas.offsetWidth;
-              const POPUP_W = 320; // w-80 in Tailwind
-              const POPUP_H = 420; // generous estimate for the picker height
-              const canvasW = canvas.offsetWidth;
-              const canvasH = canvas.offsetHeight;
-              const rawX = (native.clientX - rect.left) / cssScale;
-              const rawY = (native.clientY - rect.top) / cssScale;
-              // Horizontal: open to the right when there's room, otherwise to the left
-              const px =
-                rawX + 14 + POPUP_W > canvasW ? rawX - POPUP_W - 14 : rawX + 14;
-              // Vertical: clamp so it never overflows bottom or top
-              const py = Math.max(0, Math.min(rawY - 44, canvasH - POPUP_H));
-              setPicker({ label, x: px, y: py });
-            }
+            const native = event.native as MouseEvent;
+            const rect = canvas.getBoundingClientRect();
+            // rect gives visual (CSS-scaled) dimensions; canvas.offsetWidth is the
+            // logical layout size (1080px space). Dividing by cssScale converts the
+            // click position into logical coordinates so the picker appears in the
+            // correct spot regardless of the CSS transform scale applied by HomeClient.
+            const cssScale = rect.width / canvas.offsetWidth;
+            const POPUP_W = 320; // w-80 in Tailwind
+            const POPUP_H = 420; // generous estimate for the picker height
+            const canvasW = canvas.offsetWidth;
+            const canvasH = canvas.offsetHeight;
+            const rawX = (native.clientX - rect.left) / cssScale;
+            const rawY = (native.clientY - rect.top) / cssScale;
+            // Horizontal: open to the right when there's room, otherwise to the left
+            const px =
+              rawX + 14 + POPUP_W > canvasW ? rawX - POPUP_W - 14 : rawX + 14;
+            // Vertical: clamp so it never overflows bottom or top
+            const py = Math.max(0, Math.min(rawY - 44, canvasH - POPUP_H));
+            setPicker({ label, x: px, y: py });
           }
         },
         plugins: {
@@ -829,21 +836,16 @@ export function PieChart({
           z-[20] keeps it below the drawer (z-40) and backdrop (z-30)
           so opening the menu naturally covers it. */}
       {isMobile &&
+        picker &&
         typeof document !== "undefined" &&
         createPortal(
           <div
             ref={pickerPopupRef}
             className="fixed bottom-0 left-0 right-0 z-[20] border-t border-gray-200 bg-white shadow-2xl"
           >
-            {picker && currentOptions(picker.label).length > 0 ? (
-              <div className="max-h-[50vh] overflow-y-auto">
-                {renderPickerInner(picker.label)}
-              </div>
-            ) : (
-              <p className="px-4 py-3 text-center text-xs text-gray-400">
-                Tocca una fetta del grafico per selezionare l&apos;immagine
-              </p>
-            )}
+            <div className="max-h-[50vh] overflow-y-auto">
+              {renderPickerInner(picker.label)}
+            </div>
           </div>,
           document.body,
         )}
