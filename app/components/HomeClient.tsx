@@ -80,6 +80,7 @@ export function HomeClient() {
   const [progressivePctFont, setProgressivePctFont] = useState(true);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [exportStatus, setExportStatus] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
 
   // Tracks whether any mobile picker (PieChart or PlayersTop) is open.
   const [piePickerOpen, setPiePickerOpen] = useState(false);
@@ -95,6 +96,10 @@ export function HomeClient() {
 
   // Lock body scroll while the mobile drawer is open so the page
   // behind the backdrop cannot be scrolled by touch.
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   useEffect(() => {
     document.body.style.overflow = isMenuOpen ? "hidden" : "";
     document.body.style.touchAction = isMenuOpen ? "none" : "";
@@ -382,7 +387,7 @@ export function HomeClient() {
 
       {/* Single mobile hint banner — hidden as soon as any picker opens */}
       {!anyPickerOpen &&
-        typeof document !== "undefined" &&
+        mounted &&
         createPortal(
           <div className="md:hidden fixed bottom-0 left-0 right-0 z-[20] border-t border-gray-200 bg-white shadow-2xl">
             <p className="px-4 py-3 text-center text-xs text-gray-400">
